@@ -20,19 +20,19 @@ pub struct MemoryStackAccount<M> {
 #[derive(Clone, Debug)]
 pub struct MemoryStackSubstate<'config, M> {
 	metadata: StackSubstateMetadata<'config>,
-	parent: Option<Box<MemoryStackSubstate<'config>>>,
+	parent: Option<Box<MemoryStackSubstate<'config, M>>>,
 	logs: ManagedVec<M, Log>,
-	accounts: BTreeMap<H160, MemoryStackAccount>,
+	accounts: BTreeMap<H160, MemoryStackAccount<M>>,
 	storages: BTreeMap<(H160, H256), H256>,
 	deletes: BTreeSet<H160>,
 }
 
-impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi> {
+impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 	pub fn new(metadata: StackSubstateMetadata<'config>) -> Self {
 		Self {
 			metadata,
 			parent: None,
-			logs: ManagedVecn::new(),
+			logs: ManagedVec::new(),
 			accounts: BTreeMap::new(),
 			storages: BTreeMap::new(),
 			deletes: BTreeSet::new(),
@@ -58,7 +58,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 	/// Deconstruct the executor, return state to be applied. Panic if the
 	/// executor is not in the top-level substate.
 	#[must_use]
-	pub fn deconstruct<B: Backend>(
+	pub fn deconstruct<B: Backend<M>>(
 		mut self,
 		backend: &B,
 	) -> (
@@ -175,7 +175,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 		Ok(())
 	}
 
-	pub fn known_account(&self, address: H160) -> Option<&MemoryStackAccount> {
+	pub fn known_account(&self, address: H160) -> Option<&MemoryStackAccount<M>> {
 		if let Some(account) = self.accounts.get(&address) {
 			Some(account)
 		} else if let Some(parent) = self.parent.as_ref() {
@@ -280,7 +280,11 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 	}
 
 	#[allow(clippy::map_entry)]
-	fn account_mut<B: Backend>(&mut self, address: H160, backend: &B) -> &mut MemoryStackAccount {
+	fn account_mut<B: Backend<M>>(
+		&mut self,
+		address: H160,
+		backend: &B,
+	) -> &mut MemoryStackAccount<M> {
 		if !self.accounts.contains_key(&address) {
 			let account = self
 				.known_account(address)
@@ -302,7 +306,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 			.expect("New account was just inserted")
 	}
 
-	pub fn inc_nonce<B: Backend>(&mut self, address: H160, backend: &B) {
+	pub fn inc_nonce<B: Backend<M>>(&mut self, address: H160, backend: &B) {
 		self.account_mut(address, backend).basic.nonce += U256::one();
 	}
 
@@ -310,7 +314,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 		self.storages.insert((address, key), value);
 	}
 
-	pub fn reset_storage<B: Backend>(&mut self, address: H160, backend: &B) {
+	pub fn reset_storage<B: Backend<M>>(&mut self, address: H160, backend: &B) {
 		let mut removing = ManagedVec::new();
 
 		for (oa, ok) in self.storages.keys() {
@@ -338,11 +342,11 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 		self.deletes.insert(address);
 	}
 
-	pub fn set_code<B: Backend>(&mut self, address: H160, code: ManagedVec<M, u8>, backend: &B) {
+	pub fn set_code<B: Backend<M>>(&mut self, address: H160, code: ManagedVec<M, u8>, backend: &B) {
 		self.account_mut(address, backend).code = Some(code);
 	}
 
-	pub fn transfer<B: Backend>(
+	pub fn transfer<B: Backend<M>>(
 		&mut self,
 		transfer: Transfer,
 		backend: &B,
@@ -364,7 +368,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 	}
 
 	// Only needed for jsontests.
-	pub fn withdraw<B: Backend>(
+	pub fn withdraw<B: Backend<M>>(
 		&mut self,
 		address: H160,
 		value: U256,
@@ -380,27 +384,29 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M: ManagedTypeApi>
 	}
 
 	// Only needed for jsontests.
-	pub fn deposit<B: Backend>(&mut self, address: H160, value: U256, backend: &B) {
+	pub fn deposit<B: Backend<M>>(&mut self, address: H160, value: U256, backend: &B) {
 		let target = self.account_mut(address, backend);
 		target.basic.balance = target.basic.balance.saturating_add(value);
 	}
 
-	pub fn reset_balance<B: Backend>(&mut self, address: H160, backend: &B) {
+	pub fn reset_balance<B: Backend<M>>(&mut self, address: H160, backend: &B) {
 		self.account_mut(address, backend).basic.balance = U256::zero();
 	}
 
-	pub fn touch<B: Backend>(&mut self, address: H160, backend: &B) {
+	pub fn touch<B: Backend<M>>(&mut self, address: H160, backend: &B) {
 		self.account_mut(address, backend);
 	}
 }
 
 #[derive(Clone, Debug)]
-pub struct MemoryStackState<'backend, 'config, B> {
+pub struct MemoryStackState<'backend, 'config, B, M> {
 	backend: &'backend B,
-	substate: MemoryStackSubstate<'config>,
+	substate: MemoryStackSubstate<'config, M>,
 }
 
-impl<'backend, 'config, B: Backend> Backend for MemoryStackState<'backend, 'config, B> {
+impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> Backend<M>
+	for MemoryStackState<'backend, 'config, B, M>
+{
 	fn gas_price(&self) -> U256 {
 		self.backend.gas_price()
 	}
@@ -464,7 +470,9 @@ impl<'backend, 'config, B: Backend> Backend for MemoryStackState<'backend, 'conf
 	}
 }
 
-impl<'backend, 'config, B: Backend> StackState<'config> for MemoryStackState<'backend, 'config, B> {
+impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> StackState<'config, M>
+	for MemoryStackState<'backend, 'config, B, M>
+{
 	fn metadata(&self) -> &StackSubstateMetadata<'config> {
 		self.substate.metadata()
 	}
@@ -548,7 +556,9 @@ impl<'backend, 'config, B: Backend> StackState<'config> for MemoryStackState<'ba
 	}
 }
 
-impl<'backend, 'config, B: Backend> MemoryStackState<'backend, 'config, B> {
+impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi>
+	MemoryStackState<'backend, 'config, B, M>
+{
 	pub fn new(metadata: StackSubstateMetadata<'config>, backend: &'backend B) -> Self {
 		Self {
 			backend,
@@ -557,7 +567,7 @@ impl<'backend, 'config, B: Backend> MemoryStackState<'backend, 'config, B> {
 	}
 
 	/// Returns a mutable reference to an account given its address
-	pub fn account_mut(&mut self, address: H160) -> &mut MemoryStackAccount {
+	pub fn account_mut(&mut self, address: H160) -> &mut MemoryStackAccount<M> {
 		self.substate.account_mut(address, self.backend)
 	}
 

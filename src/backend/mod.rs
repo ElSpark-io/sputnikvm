@@ -6,7 +6,6 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
-use alloc::vec::Vec;
 use elrond_wasm::types::ManagedVec;
 use primitive_types::{H160, H256, U256};
 
@@ -89,9 +88,9 @@ pub trait Backend<M> {
 /// EVM backend that can apply changes.
 pub trait ApplyBackend {
 	/// Apply given values and logs at backend.
-	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
+	fn apply<A, I, L, M>(&mut self, values: A, logs: L, delete_empty: bool)
 	where
-		A: IntoIterator<Item = Apply<I>>,
+		A: IntoIterator<Item = Apply<I, M>>,
 		I: IntoIterator<Item = (H256, H256)>,
 		L: IntoIterator<Item = Log>;
 }

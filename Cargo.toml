@@ -77,4 +77,5 @@ members = [
 	"gasometer",
 	"runtime",
 	"fuzzer",
+	"eltypes",
 ]

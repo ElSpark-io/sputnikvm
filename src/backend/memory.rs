@@ -1,7 +1,7 @@
 use super::{Apply, ApplyBackend, Backend, Basic, Log};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
+use elrond_wasm::types::ManagedVec;
 use primitive_types::{H160, H256, U256};
 
 /// Vicinity value of a memory backend.
@@ -55,14 +55,17 @@ pub struct MemoryAccount<M> {
 /// Memory backend, storing all state values in a `BTreeMap` in memory.
 #[derive(Clone, Debug)]
 pub struct MemoryBackend<'vicinity, M> {
-	vicinity: &'vicinity MemoryVicinity,
-	state: BTreeMap<H160, MemoryAccount>,
+	vicinity: &'vicinity MemoryVicinity<M>,
+	state: BTreeMap<H160, MemoryAccount<M>>,
 	logs: ManagedVec<M, Log>,
 }
 
-impl<'vicinity> MemoryBackend<'vicinity> {
+impl<'vicinity, M> MemoryBackend<'vicinity, M> {
 	/// Create a new memory backend.
-	pub fn new(vicinity: &'vicinity MemoryVicinity, state: BTreeMap<H160, MemoryAccount>) -> Self {
+	pub fn new(
+		vicinity: &'vicinity MemoryVicinity<M>,
+		state: BTreeMap<H160, MemoryAccount<M>>,
+	) -> Self {
 		Self {
 			vicinity,
 			state,
@@ -71,17 +74,17 @@ impl<'vicinity> MemoryBackend<'vicinity> {
 	}
 
 	/// Get the underlying `BTreeMap` storing the state.
-	pub fn state(&self) -> &BTreeMap<H160, MemoryAccount> {
+	pub fn state(&self) -> &BTreeMap<H160, MemoryAccount<M>> {
 		&self.state
 	}
 
 	/// Get a mutable reference to the underlying `BTreeMap` storing the state.
-	pub fn state_mut(&mut self) -> &mut BTreeMap<H160, MemoryAccount> {
+	pub fn state_mut(&mut self) -> &mut BTreeMap<H160, MemoryAccount<M>> {
 		&mut self.state
 	}
 }
 
-impl<'vicinity> Backend for MemoryBackend<'vicinity> {
+impl<'vicinity, M> Backend<M> for MemoryBackend<'vicinity, M> {
 	fn gas_price(&self) -> U256 {
 		self.vicinity.gas_price
 	}
@@ -155,10 +158,10 @@ impl<'vicinity> Backend for MemoryBackend<'vicinity> {
 	}
 }
 
-impl<'vicinity> ApplyBackend for MemoryBackend<'vicinity> {
+impl<'vicinity, M> ApplyBackend for MemoryBackend<'vicinity, M> {
 	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
 	where
-		A: IntoIterator<Item = Apply<I>>,
+		A: IntoIterator<Item = Apply<I, M>>,
 		I: IntoIterator<Item = (H256, H256)>,
 		L: IntoIterator<Item = Log>,
 	{

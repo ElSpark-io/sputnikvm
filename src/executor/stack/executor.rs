@@ -188,7 +188,7 @@ impl<'config> StackSubstateMetadata<'config> {
 }
 
 #[auto_impl::auto_impl(&mut, Box)]
-pub trait StackState<'config, M>: Backend {
+pub trait StackState<'config, M>: Backend<M> {
 	fn metadata(&self) -> &StackSubstateMetadata<'config>;
 	fn metadata_mut(&mut self) -> &mut StackSubstateMetadata<'config>;
 
@@ -251,8 +251,11 @@ pub enum PrecompileFailure<M> {
 	Fatal { exit_status: ExitFatal },
 }
 
-impl From<ExitError> for PrecompileFailure {
-	fn from(error: ExitError) -> PrecompileFailure {
+impl From<ExitError> for PrecompileFailure<M>
+where
+	M: ManagedTypeApi,
+{
+	fn from<M>(error: ExitError) -> PrecompileFailure<M> {
 		PrecompileFailure::Error { exit_status: error }
 	}
 }
@@ -302,7 +305,7 @@ pub trait PrecompileHandle<M> {
 }
 
 /// A precompile result.
-pub type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
+pub type PrecompileResult<M: ManagedTypeApi> = Result<PrecompileOutput<M>, PrecompileFailure<M>>;
 
 /// A set of precompiles.
 /// Checks of the provided address being in the precompile set should be
@@ -310,7 +313,7 @@ pub type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
 pub trait PrecompileSet {
 	/// Tries to execute a precompile in the precompile set.
 	/// If the provided address is not a precompile, returns None.
-	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult>;
+	fn execute<M>(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>>;
 
 	/// Check if the given address is a precompile. Should only be called to
 	/// perform the check while not executing the precompile afterward, since
@@ -319,7 +322,10 @@ pub trait PrecompileSet {
 }
 
 impl PrecompileSet for () {
-	fn execute(&self, _: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
+	fn execute<M: ManagedTypeApi>(
+		&self,
+		_: &mut impl PrecompileHandle<M>,
+	) -> Option<PrecompileResult<M>> {
 		None
 	}
 
@@ -335,11 +341,15 @@ impl PrecompileSet for () {
 ///  * Is static
 ///
 /// In case of success returns the output and the cost.
-pub type PrecompileFn =
-	fn(&[u8], Option<u64>, &Context, bool) -> Result<(PrecompileOutput, u64), PrecompileFailure>;
+pub type PrecompileFn<M> = fn(
+	&[u8],
+	Option<u64>,
+	&Context,
+	bool,
+) -> Result<(PrecompileOutput<M>, u64), PrecompileFailure<M>>;
 
-impl PrecompileSet for BTreeMap<H160, PrecompileFn> {
-	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
+impl PrecompileSet<M: ManagedTypeApi> for BTreeMap<H160, PrecompileFn<M>> {
+	fn execute<M>(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		let address = handle.code_address();
 
 		self.get(&address).map(|precompile| {
@@ -373,7 +383,7 @@ pub struct StackExecutor<'config, 'precompiles, S, P> {
 	precompile_set: &'precompiles P,
 }
 
-impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, M: ManagedTypeApi>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: ManagedTypeApi>
 	StackExecutor<'config, 'precompiles, S, P>
 {
 	/// Return a reference of the Config.
@@ -426,7 +436,7 @@ impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, M: Managed
 	}
 
 	/// Execute the runtime until it returns.
-	pub fn execute(&mut self, runtime: &mut Runtime) -> ExitReason {
+	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>) -> ExitReason {
 		match runtime.run(self) {
 			Capture::Exit(s) => s,
 			Capture::Trap(_) => unreachable!("Trap is Infallible"),
@@ -1009,8 +1019,8 @@ impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, M: Managed
 	}
 }
 
-impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, M: ManagedTypeApi> Handler
-	for StackExecutor<'config, 'precompiles, S, P>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: ManagedTypeApi>
+	Handler<M> for StackExecutor<'config, 'precompiles, S, P>
 {
 	type CreateInterrupt = Infallible;
 	type CreateFeedback = Infallible;
@@ -1221,7 +1231,7 @@ impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, M: Managed
 		&mut self,
 		context: &Context,
 		opcode: Opcode,
-		stack: &Stack,
+		stack: &Stack<M>,
 	) -> Result<(), ExitError> {
 		// log::trace!(target: "evm", "Running opcode: {:?}, Pre gas-left: {:?}", opcode, gasometer.gas());
 
@@ -1269,10 +1279,10 @@ impl<
 		'inner,
 		'config,
 		'precompiles,
-		S: StackState<'config>,
+		S: StackState<'config, M>,
 		P: PrecompileSet,
 		M: ManagedTypeApi,
-	> PrecompileHandle for StackExecutorHandle<'inner, 'config, 'precompiles, S, P>
+	> PrecompileHandle<M> for StackExecutorHandle<'inner, 'config, 'precompiles, S, P>
 {
 	// Perform subcall in provided context.
 	/// Precompile specifies in which context the subcall is executed.
