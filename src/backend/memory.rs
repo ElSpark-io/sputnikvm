@@ -42,7 +42,7 @@ pub struct MemoryVicinity<M: ManagedTypeApi> {
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MemoryAccount<M: ManagedTypeApi> {
+pub struct MemoryAccount {
 	/// Account nonce.
 	pub nonce: U256,
 	/// Account balance.
@@ -50,14 +50,14 @@ pub struct MemoryAccount<M: ManagedTypeApi> {
 	/// Full account storage.
 	pub storage: BTreeMap<H256, H256>,
 	/// Account code.
-	pub code: ManagedVec<M, u8>,
+	pub code: Vec<u8>,
 }
 
 /// Memory backend, storing all state values in a `BTreeMap` in memory.
 #[derive(Clone, Debug)]
 pub struct MemoryBackend<'vicinity, M: ManagedTypeApi> {
 	vicinity: &'vicinity MemoryVicinity<M>,
-	state: BTreeMap<H160, MemoryAccount<M>>,
+	state: BTreeMap<H160, MemoryAccount>,
 	// logs: ManagedVec<M, Log>,
 }
 
@@ -65,7 +65,7 @@ impl<'vicinity, M: ManagedTypeApi> MemoryBackend<'vicinity, M> {
 	/// Create a new memory backend.
 	pub fn new(
 		vicinity: &'vicinity MemoryVicinity<M>,
-		state: BTreeMap<H160, MemoryAccount<M>>,
+		state: BTreeMap<H160, MemoryAccount>,
 	) -> Self {
 		Self {
 			vicinity,
@@ -75,12 +75,12 @@ impl<'vicinity, M: ManagedTypeApi> MemoryBackend<'vicinity, M> {
 	}
 
 	/// Get the underlying `BTreeMap` storing the state.
-	pub fn state(&self) -> &BTreeMap<H160, MemoryAccount<M>> {
+	pub fn state(&self) -> &BTreeMap<H160, MemoryAccount> {
 		&self.state
 	}
 
 	/// Get a mutable reference to the underlying `BTreeMap` storing the state.
-	pub fn state_mut(&mut self) -> &mut BTreeMap<H160, MemoryAccount<M>> {
+	pub fn state_mut(&mut self) -> &mut BTreeMap<H160, MemoryAccount> {
 		&mut self.state
 	}
 }
@@ -140,7 +140,7 @@ impl<'vicinity, M: ManagedTypeApi> Backend<M> for MemoryBackend<'vicinity, M> {
 			.unwrap_or_default()
 	}
 
-	fn code(&self, address: H160) -> ManagedVec<M, u8> {
+	fn code(&self, address: H160) -> Vec<u8> {
 		self.state
 			.get(&address)
 			.map(|v| v.code.clone())
@@ -162,7 +162,7 @@ impl<'vicinity, M: ManagedTypeApi> Backend<M> for MemoryBackend<'vicinity, M> {
 impl<'vicinity, M: ManagedTypeApi> ApplyBackend<M> for MemoryBackend<'vicinity, M> {
 	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
 	where
-		A: IntoIterator<Item = Apply<I, M>>,
+		A: IntoIterator<Item = Apply<I>>,
 		I: IntoIterator<Item = (H256, H256)>,
 		L: IntoIterator<Item = Log>,
 	{

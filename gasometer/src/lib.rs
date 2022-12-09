@@ -1,7 +1,7 @@
 //! EVM gasometer.
 
-#![deny(warnings)]
-#![forbid(unsafe_code, unused_variables)]
+// #![deny(warnings)]
+// #![forbid(unsafe_code, unused_variables)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
@@ -275,10 +275,7 @@ impl<'config> Gasometer<'config> {
 
 /// Calculate the call transaction cost.
 #[allow(clippy::naive_bytecount)]
-pub fn call_transaction_cost<M: ManagedTypeApi>(
-	data: &[u8],
-	access_list: &[(H160, ManagedVec<M, EH256>)],
-) -> TransactionCost {
+pub fn call_transaction_cost(data: &[u8], access_list: &[(H160, Vec<H256>)]) -> TransactionCost {
 	let zero_data_len = data.iter().filter(|v| **v == 0).count();
 	let non_zero_data_len = data.len() - zero_data_len;
 	let (access_list_address_len, access_list_storage_len) = count_access_list(access_list);
@@ -293,13 +290,7 @@ pub fn call_transaction_cost<M: ManagedTypeApi>(
 
 /// Calculate the create transaction cost.
 #[allow(clippy::naive_bytecount)]
-pub fn create_transaction_cost<M: ManagedTypeApi>(
-	data: &[u8],
-	access_list: &[(H160, ManagedVec<M, EH256>)],
-) -> TransactionCost
-where
-	M: ManagedTypeApi,
-{
+pub fn create_transaction_cost(data: &[u8], access_list: &[(H160, Vec<H256>)]) -> TransactionCost {
 	let zero_data_len = data.iter().filter(|v| **v == 0).count();
 	let non_zero_data_len = data.len() - zero_data_len;
 	let (access_list_address_len, access_list_storage_len) = count_access_list(access_list);
@@ -313,12 +304,7 @@ where
 }
 
 /// Counts the number of addresses and storage keys in the access list
-fn count_access_list<M: ManagedTypeApi>(
-	access_list: &[(H160, ManagedVec<M, EH256>)],
-) -> (usize, usize)
-where
-	M: ManagedTypeApi,
-{
+fn count_access_list(access_list: &[(H160, Vec<H256>)]) -> (usize, usize) {
 	let access_list_address_len = access_list.len();
 	let access_list_storage_len = access_list.iter().map(|(_, keys)| keys.len()).sum();
 

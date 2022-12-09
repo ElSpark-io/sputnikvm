@@ -10,6 +10,7 @@ use alloc::{
 	vec::Vec,
 };
 use eltypes::EH256;
+use utils::*;
 
 use core::{cmp::min, convert::Infallible};
 use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
@@ -208,7 +209,7 @@ pub trait StackState<'config, M: ManagedTypeApi>: Backend<M> {
 	fn reset_storage(&mut self, address: H160);
 	fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedVec<M, u8>);
 	fn set_deleted(&mut self, address: H160);
-	fn set_code(&mut self, address: H160, code: ManagedVec<M, u8>);
+	fn set_code(&mut self, address: H160, code: Vec<u8>);
 	fn transfer(&mut self, transfer: Transfer) -> Result<(), ExitError>;
 	fn reset_balance(&mut self, address: H160);
 	fn touch(&mut self, address: H160);
@@ -303,18 +304,15 @@ pub trait PrecompileHandle<M: ManagedTypeApi> {
 }
 
 /// A precompile result.
-pub type PrecompileResult<M: ManagedTypeApi> = Result<PrecompileOutput<M>, PrecompileFailure<M>>;
+pub type PrecompileResult<M> = Result<PrecompileOutput<M>, PrecompileFailure<M>>;
 
 /// A set of precompiles.
 /// Checks of the provided address being in the precompile set should be
 /// as cheap as possible since it may be called often.
-pub trait PrecompileSet {
+pub trait PrecompileSet<M: ManagedTypeApi> {
 	/// Tries to execute a precompile in the precompile set.
 	/// If the provided address is not a precompile, returns None.
-	fn execute<M: ManagedTypeApi>(
-		&self,
-		handle: &mut impl PrecompileHandle<M>,
-	) -> Option<PrecompileResult<M>>;
+	fn execute(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>>;
 
 	/// Check if the given address is a precompile. Should only be called to
 	/// perform the check while not executing the precompile afterward, since
@@ -322,11 +320,8 @@ pub trait PrecompileSet {
 	fn is_precompile(&self, address: H160) -> bool;
 }
 
-impl PrecompileSet for () {
-	fn execute<M: ManagedTypeApi>(
-		&self,
-		_: &mut impl PrecompileHandle<M>,
-	) -> Option<PrecompileResult<M>> {
+impl<M: ManagedTypeApi> PrecompileSet<M> for () {
+	fn execute(&self, _: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		None
 	}
 
@@ -349,7 +344,7 @@ pub type PrecompileFn<M> = fn(
 	bool,
 ) -> Result<(PrecompileOutput<M>, u64), PrecompileFailure<M>>;
 
-impl<M: ManagedTypeApi> PrecompileSet for BTreeMap<H160, PrecompileFn<M>> {
+impl<M: ManagedTypeApi> PrecompileSet<M> for BTreeMap<H160, PrecompileFn<M>> {
 	fn execute(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		let address = handle.code_address();
 
@@ -378,14 +373,16 @@ impl<M: ManagedTypeApi> PrecompileSet for BTreeMap<H160, PrecompileFn<M>> {
 }
 
 /// Stack-based executor.
-pub struct StackExecutor<'config, 'precompiles, S, P> {
+pub struct StackExecutor<'config, 'precompiles, M: ManagedTypeApi, S, P> {
 	config: &'config Config,
 	state: S,
 	precompile_set: &'precompiles P,
+	//TODO: remove vec_test
+	vec_test: ManagedVec<M, u8>,
 }
 
-impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
-	StackExecutor<'config, 'precompiles, S, P>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: ManagedTypeApi>
+	StackExecutor<'config, 'precompiles, M, S, P>
 {
 	/// Return a reference of the Config.
 	pub fn config(&self) -> &'config Config {
@@ -407,6 +404,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 			config,
 			state,
 			precompile_set,
+			vec_test: ManagedVec::new(),
 		}
 	}
 
@@ -452,7 +450,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 	fn record_create_transaction_cost(
 		&mut self,
 		init_code: &[u8],
-		access_list: &[(H160, ManagedVec<M, EH256>)],
+		access_list: &[(H160, Vec<H256>)],
 	) -> Result<(), ExitError> {
 		let transaction_cost = gasometer::create_transaction_cost(init_code, access_list);
 		let gasometer = &mut self.state.metadata_mut().gasometer;
@@ -464,9 +462,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 		&mut self,
 		caller: H160,
 		value: U256,
-		init_code: ManagedVec<M, u8>,
+		init_code: Vec<u8>,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
+		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		event!(TransactCreate {
 			caller,
@@ -485,7 +483,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 			caller,
 			CreateScheme::Legacy { caller },
 			value,
-			init_code,
+			ManagedVec::from(init_code),
 			Some(gas_limit),
 			false,
 		) {
@@ -499,10 +497,10 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 		&mut self,
 		caller: H160,
 		value: U256,
-		init_code: ManagedVec<M, u8>,
+		init_code: Vec<u8>,
 		salt: H256,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
+		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		let code_hash = H256::from_slice(Keccak256::digest(&init_code).as_slice());
 		event!(TransactCreate2 {
@@ -531,7 +529,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 				salt,
 			},
 			value,
-			init_code,
+			init_code.into(),
 			Some(gas_limit),
 			false,
 		) {
@@ -553,7 +551,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 		value: U256,
 		data: ManagedVec<M, u8>,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
+		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		event!(TransactCall {
 			caller,
@@ -563,7 +561,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 			gas_limit,
 		});
 
-		let transaction_cost = gasometer::call_transaction_cost(&data, &access_list);
+		let transaction_cost = gasometer::call_transaction_cost(&data.as_bytes(), &access_list);
 		let gasometer = &mut self.state.metadata_mut().gasometer;
 		match gasometer.record_transaction(transaction_cost) {
 			Ok(()) => (),
@@ -677,16 +675,14 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 		}
 	}
 
-	pub fn initialize_with_access_list(
-		&mut self,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>,
-	) {
+	pub fn initialize_with_access_list(&mut self, access_list: &[(H160, Vec<H256>)]) {
 		let addresses = access_list.iter().map(|a| a.0);
 		self.state.metadata_mut().access_addresses(addresses);
 
-		let storage_keys = access_list
-			.into_iter()
-			.flat_map(|(address, keys)| keys.into_iter().map(move |key| (address, key)));
+		let storage_keys = access_list.into_iter().flat_map(|(address, keys)| {
+			keys.into_iter()
+				.map(move |key| (address.clone(), key.clone()))
+		});
 		self.state.metadata_mut().access_storages(storage_keys);
 	}
 
@@ -817,7 +813,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 				let out = runtime.machine().return_value();
 
 				// As of EIP-3541 code starting with 0xef cannot be deployed
-				if let Err(e) = check_first_byte(self.config, &out) {
+				if let Err(e) = check_first_byte(self.config, &out.as_bytes()) {
 					self.state.metadata_mut().gasometer.fail();
 					let _ = self.exit_substate(StackExitKind::Failed);
 					return Capture::Exit((e.into(), None, ManagedVec::new()));
@@ -843,7 +839,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 				{
 					Ok(()) => {
 						let e = self.exit_substate(StackExitKind::Succeeded);
-						self.state.set_code(address, out);
+						self.state.set_code(address, out.as_bytes());
 						try_or_fail!(e);
 						Capture::Exit((ExitReason::Succeed(s), Some(address), ManagedVec::new()))
 					}
@@ -961,7 +957,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 		if let Some(result) = self.precompile_set.execute(&mut StackExecutorHandle {
 			executor: self,
 			code_address,
-			input: &input,
+			input: &input.as_bytes(),
 			gas_limit: Some(gas_limit),
 			context: &context,
 			is_static: precompile_is_static,
@@ -1020,8 +1016,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 	}
 }
 
-impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: ManagedTypeApi>
-	Handler<M> for StackExecutor<'config, 'precompiles, S, P>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: ManagedTypeApi>
+	Handler<M> for StackExecutor<'config, 'precompiles, M, S, P>
 {
 	type CreateInterrupt = Infallible;
 	type CreateFeedback = Infallible;
@@ -1045,11 +1041,11 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 	}
 
 	fn code(&self, address: H160) -> ManagedVec<M, u8> {
-		self.state.code(address)
+		self.state.code(address).into()
 	}
 
-	fn storage(&self, address: H160, index: H256) -> H256 {
-		self.state.storage(address, index)
+	fn storage(&self, address: H160, index: EH256) -> H256 {
+		self.state.storage(address, index.to_h256())
 	}
 
 	fn original_storage(&self, address: H160, index: H256) -> H256 {
@@ -1112,8 +1108,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 		self.state.deleted(address)
 	}
 
-	fn set_storage(&mut self, address: H160, index: H256, value: H256) -> Result<(), ExitError> {
-		self.state.set_storage(address, index, value);
+	fn set_storage(&mut self, address: H160, index: EH256, value: EH256) -> Result<(), ExitError> {
+		self.state
+			.set_storage(address, index.to_h256(), value.to_h256());
 		Ok(())
 	}
 
@@ -1267,8 +1264,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 	}
 }
 
-struct StackExecutorHandle<'inner, 'config, 'precompiles, S, P> {
-	executor: &'inner mut StackExecutor<'config, 'precompiles, S, P>,
+struct StackExecutorHandle<'inner, 'config, 'precompiles, M: ManagedTypeApi, S, P> {
+	executor: &'inner mut StackExecutor<'config, 'precompiles, M, S, P>,
 	code_address: H160,
 	input: &'inner [u8],
 	gas_limit: Option<u64>,
@@ -1281,9 +1278,9 @@ impl<
 		'config,
 		'precompiles,
 		S: StackState<'config, M>,
-		P: PrecompileSet,
+		P: PrecompileSet<M>,
 		M: ManagedTypeApi,
-	> PrecompileHandle<M> for StackExecutorHandle<'inner, 'config, 'precompiles, S, P>
+	> PrecompileHandle<M> for StackExecutorHandle<'inner, 'config, 'precompiles, M, S, P>
 {
 	// Perform subcall in provided context.
 	/// Precompile specifies in which context the subcall is executed.
