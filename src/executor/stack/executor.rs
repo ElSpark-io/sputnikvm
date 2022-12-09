@@ -9,6 +9,7 @@ use alloc::{
 	rc::Rc,
 	vec::Vec,
 };
+use eltypes::EH256;
 
 use core::{cmp::min, convert::Infallible};
 use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
@@ -188,7 +189,7 @@ impl<'config> StackSubstateMetadata<'config> {
 }
 
 #[auto_impl::auto_impl(&mut, Box)]
-pub trait StackState<'config, M>: Backend<M> {
+pub trait StackState<'config, M: ManagedTypeApi>: Backend<M> {
 	fn metadata(&self) -> &StackSubstateMetadata<'config>;
 	fn metadata_mut(&mut self) -> &mut StackSubstateMetadata<'config>;
 
@@ -205,7 +206,7 @@ pub trait StackState<'config, M>: Backend<M> {
 	fn inc_nonce(&mut self, address: H160);
 	fn set_storage(&mut self, address: H160, key: H256, value: H256);
 	fn reset_storage(&mut self, address: H160);
-	fn log(&mut self, address: H160, topics: ManagedVec<M, H256>, data: ManagedVec<M, u8>);
+	fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedVec<M, u8>);
 	fn set_deleted(&mut self, address: H160);
 	fn set_code(&mut self, address: H160, code: ManagedVec<M, u8>);
 	fn transfer(&mut self, transfer: Transfer) -> Result<(), ExitError>;
@@ -231,14 +232,14 @@ pub trait StackState<'config, M>: Backend<M> {
 
 /// Data returned by a precompile on success.
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PrecompileOutput<M> {
+pub struct PrecompileOutput<M: ManagedTypeApi> {
 	pub exit_status: ExitSucceed,
 	pub output: ManagedVec<M, u8>,
 }
 
 /// Data returned by a precompile in case of failure.
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub enum PrecompileFailure<M> {
+pub enum PrecompileFailure<M: ManagedTypeApi> {
 	/// Reverts the state changes and consume all the gas.
 	Error { exit_status: ExitError },
 	/// Reverts the state changes.
@@ -251,17 +252,14 @@ pub enum PrecompileFailure<M> {
 	Fatal { exit_status: ExitFatal },
 }
 
-impl From<ExitError> for PrecompileFailure<M>
-where
-	M: ManagedTypeApi,
-{
-	fn from<M>(error: ExitError) -> PrecompileFailure<M> {
+impl<M: ManagedTypeApi> From<ExitError> for PrecompileFailure<M> {
+	fn from(error: ExitError) -> PrecompileFailure<M> {
 		PrecompileFailure::Error { exit_status: error }
 	}
 }
 
 /// Handle provided to a precompile to interact with the EVM.
-pub trait PrecompileHandle<M> {
+pub trait PrecompileHandle<M: ManagedTypeApi> {
 	/// Perform subcall in provided context.
 	/// Precompile specifies in which context the subcall is executed.
 	fn call(
@@ -284,7 +282,7 @@ pub trait PrecompileHandle<M> {
 	fn log(
 		&mut self,
 		address: H160,
-		topics: ManagedVec<M, H256>,
+		topics: ManagedVec<M, EH256>,
 		data: ManagedVec<M, u8>,
 	) -> Result<(), ExitError>;
 
@@ -313,7 +311,10 @@ pub type PrecompileResult<M: ManagedTypeApi> = Result<PrecompileOutput<M>, Preco
 pub trait PrecompileSet {
 	/// Tries to execute a precompile in the precompile set.
 	/// If the provided address is not a precompile, returns None.
-	fn execute<M>(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>>;
+	fn execute<M: ManagedTypeApi>(
+		&self,
+		handle: &mut impl PrecompileHandle<M>,
+	) -> Option<PrecompileResult<M>>;
 
 	/// Check if the given address is a precompile. Should only be called to
 	/// perform the check while not executing the precompile afterward, since
@@ -348,8 +349,8 @@ pub type PrecompileFn<M> = fn(
 	bool,
 ) -> Result<(PrecompileOutput<M>, u64), PrecompileFailure<M>>;
 
-impl PrecompileSet<M: ManagedTypeApi> for BTreeMap<H160, PrecompileFn<M>> {
-	fn execute<M>(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
+impl<M: ManagedTypeApi> PrecompileSet for BTreeMap<H160, PrecompileFn<M>> {
+	fn execute(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		let address = handle.code_address();
 
 		self.get(&address).map(|precompile| {
@@ -383,7 +384,7 @@ pub struct StackExecutor<'config, 'precompiles, S, P> {
 	precompile_set: &'precompiles P,
 }
 
-impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: ManagedTypeApi>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet>
 	StackExecutor<'config, 'precompiles, S, P>
 {
 	/// Return a reference of the Config.
@@ -451,7 +452,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 	fn record_create_transaction_cost(
 		&mut self,
 		init_code: &[u8],
-		access_list: &[(H160, ManagedVec<M, H256>)],
+		access_list: &[(H160, ManagedVec<M, EH256>)],
 	) -> Result<(), ExitError> {
 		let transaction_cost = gasometer::create_transaction_cost(init_code, access_list);
 		let gasometer = &mut self.state.metadata_mut().gasometer;
@@ -465,7 +466,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 		value: U256,
 		init_code: ManagedVec<M, u8>,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, H256>)>, // See EIP-2930
+		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		event!(TransactCreate {
 			caller,
@@ -501,7 +502,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 		init_code: ManagedVec<M, u8>,
 		salt: H256,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, H256>)>, // See EIP-2930
+		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		let code_hash = H256::from_slice(Keccak256::digest(&init_code).as_slice());
 		event!(TransactCreate2 {
@@ -552,7 +553,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 		value: U256,
 		data: ManagedVec<M, u8>,
 		gas_limit: u64,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, H256>)>, // See EIP-2930
+		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>, // See EIP-2930
 	) -> (ExitReason, ManagedVec<M, u8>) {
 		event!(TransactCall {
 			caller,
@@ -678,7 +679,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 
 	pub fn initialize_with_access_list(
 		&mut self,
-		access_list: ManagedVec<M, (H160, ManagedVec<M, H256>)>,
+		access_list: ManagedVec<M, (H160, ManagedVec<M, EH256>)>,
 	) {
 		let addresses = access_list.iter().map(|a| a.0);
 		self.state.metadata_mut().access_addresses(addresses);
@@ -1119,7 +1120,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet, M: Mana
 	fn log(
 		&mut self,
 		address: H160,
-		topics: ManagedVec<M, H256>,
+		topics: ManagedVec<M, EH256>,
 		data: ManagedVec<M, u8>,
 	) -> Result<(), ExitError> {
 		self.state.log(address, topics, data);
@@ -1364,7 +1365,7 @@ impl<
 	fn log(
 		&mut self,
 		address: H160,
-		topics: ManagedVec<M, H256>,
+		topics: ManagedVec<M, EH256>,
 		data: ManagedVec<M, u8>,
 	) -> Result<(), ExitError> {
 		Handler::log(self.executor, address, topics, data)

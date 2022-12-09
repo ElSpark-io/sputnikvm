@@ -26,6 +26,7 @@ evm-core = { version = "0.37.0", path = "core", default-features = false }
 evm-gasometer = { version = "0.37.0", path = "gasometer", default-features = false }
 evm-runtime = { version = "0.37.0", path = "runtime", default-features = false }
 elrond-wasm = { version = "0.36.0" }
+eltypes = { version = "0.1.0", path = "eltypes", default-features = false }
 
 [dev-dependencies]
 criterion = "0.4.0"
@@ -77,5 +78,4 @@ members = [
 	"gasometer",
 	"runtime",
 	"fuzzer",
-	"eltypes",
 ]

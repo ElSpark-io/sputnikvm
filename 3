@@ -41,8 +41,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 	}
 
 	pub fn logs(&self) -> &[Log] {
-		// &self.logs
-		&vec![]
+		&self.logs
 	}
 
 	// pub fn logs_mut(&mut self) -> &mut ManagedVec<M, Log> {
@@ -112,14 +111,14 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 			applies.push(Apply::Delete { address });
 		}
 
-		(applies, vec![])
+		(applies, self.logs)
 	}
 
 	pub fn enter(&mut self, gas_limit: u64, is_static: bool) {
 		let mut entering = Self {
 			metadata: self.metadata.spit_child(gas_limit, is_static),
 			parent: None,
-			// logs: ManagedVec::new(),
+			logs: ManagedVec::new(),
 			accounts: BTreeMap::new(),
 			storages: BTreeMap::new(),
 			deletes: BTreeSet::new(),
@@ -134,7 +133,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 		mem::swap(&mut exited, self);
 
 		self.metadata.swallow_commit(exited.metadata)?;
-		// self.logs.append(&mut exited.logs);
+		self.logs.append(&mut exited.logs);
 
 		let mut resets = BTreeSet::new();
 		for (address, account) in &exited.accounts {
@@ -317,22 +316,28 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 	}
 
 	pub fn reset_storage<B: Backend<M>>(&mut self, address: H160, backend: &B) {
+		let mut removing = ManagedVec::new();
+
 		for (oa, ok) in self.storages.keys() {
 			if *oa == address {
-				self.storages.remove(&(address, *ok));
+				removing.push(*ok);
 			}
+		}
+
+		for ok in removing {
+			self.storages.remove(&(address, ok));
 		}
 
 		self.account_mut(address, backend).reset = true;
 	}
 
-	// pub fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedVec<M, u8>) {
-	// 	self.logs.push(Log {
-	// 		address,
-	// 		topics,
-	// 		data,
-	// 	});
-	// }
+	pub fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedVec<M, u8>) {
+		self.logs.push(Log {
+			address,
+			topics,
+			data,
+		});
+	}
 
 	pub fn set_deleted(&mut self, address: H160) {
 		self.deletes.insert(address);
@@ -528,7 +533,7 @@ impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> StackState<'config, M>
 	}
 
 	fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedVec<M, u8>) {
-		// 	self.substate.log(address, topics, data);
+		self.substate.log(address, topics, data);
 	}
 
 	fn set_deleted(&mut self, address: H160) {
