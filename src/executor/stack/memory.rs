@@ -7,7 +7,10 @@ use alloc::{
 	vec::Vec,
 };
 use core::mem;
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
+use elrond_wasm::{
+	api::ManagedTypeApi,
+	types::{ManagedBuffer, ManagedVec},
+};
 use eltypes::EH256;
 use primitive_types::{H160, H256, U256};
 
@@ -111,7 +114,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 			applies.push(Apply::Delete { address });
 		}
 
-		(applies, vec![])
+		(applies, Vec::new())
 	}
 
 	pub fn enter(&mut self, gas_limit: u64, is_static: bool) {
@@ -342,12 +345,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 		self.deletes.insert(address);
 	}
 
-	pub fn set_code<B: Backend<M>>(
-		&mut self,
-		address: H160,
-		code: ManagedBuffer<M>,
-		backend: &B,
-	) {
+	pub fn set_code<B: Backend<M>>(&mut self, address: H160, code: ManagedBuffer<M>, backend: &B) {
 		self.account_mut(address, backend).code = Some(code);
 	}
 
@@ -389,12 +387,7 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 	}
 
 	// Only needed for jsontests.
-	pub fn deposit<B: Backend<M>>(
-		&mut self,
-		address: H160,
-		value: U256,
-		backend: &B,
-	) {
+	pub fn deposit<B: Backend<M>>(&mut self, address: H160, value: U256, backend: &B) {
 		let target = self.account_mut(address, backend);
 		target.basic.balance = target.basic.balance.saturating_add(value);
 	}
