@@ -6,7 +6,7 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedBuffer};
+use elrond_wasm::{api::VMApi, contract_base::ContractBase, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
 /// Basic account information.
@@ -27,7 +27,7 @@ pub use ethereum::Log;
 
 /// Apply state operation.
 #[derive(Clone, Debug)]
-pub enum Apply<I, M: ManagedTypeApi> {
+pub enum Apply<I, M: ContractBase::Api> {
 	/// Modify or create at address.
 	Modify {
 		/// Address.
@@ -51,7 +51,7 @@ pub enum Apply<I, M: ManagedTypeApi> {
 
 /// EVM backend.
 #[auto_impl::auto_impl(&, Arc, Box)]
-pub trait Backend<M: ManagedTypeApi> {
+pub trait Backend<M: VMApi> {
 	/// Gas price. Unused for London.
 	fn gas_price(&self) -> U256;
 	/// Origin.
@@ -86,7 +86,7 @@ pub trait Backend<M: ManagedTypeApi> {
 }
 
 /// EVM backend that can apply changes.
-pub trait ApplyBackend<M: ManagedTypeApi> {
+pub trait ApplyBackend<M: VMApi> {
 	/// Apply given values and logs at backend.
 	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
 	where

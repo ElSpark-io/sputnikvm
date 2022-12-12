@@ -2,20 +2,20 @@ use crate::{ExitError, ExitFatal};
 use core::cmp::min;
 use core::ops::{BitAnd, Not};
 use elrond_wasm::types::ManagedBuffer;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
-use primitive_types::U256;
+use elrond_wasm::{api::VMApi, types::ManagedVec};
 use eltypes::ManagedBufferAccess;
+use primitive_types::U256;
 
 /// A sequencial memory. It uses Rust's `Vec` for internal
 /// representation.
 #[derive(Clone, Debug)]
-pub struct Memory<M: ManagedTypeApi> {
+pub struct Memory<M: VMApi> {
 	data: ManagedBuffer<M>,
 	effective_len: U256,
 	limit: usize,
 }
 
-impl<M: ManagedTypeApi> Memory<M> {
+impl<M: VMApi> Memory<M> {
 	/// Create a new memory with the given limit.
 	pub fn new(limit: usize) -> Self {
 		Self {

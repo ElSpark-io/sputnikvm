@@ -1,5 +1,8 @@
 use crate::{Capture, Context, CreateScheme, ExitError, ExitReason, Machine, Opcode, Stack};
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
+use elrond_wasm::{
+	api::VMApi,
+	types::{ManagedBuffer, ManagedVec},
+};
 use eltypes::EH256;
 
 use primitive_types::{H160, H256, U256};
@@ -17,7 +20,7 @@ pub struct Transfer {
 
 /// EVM context handler.
 #[auto_impl::auto_impl(&mut, Box)]
-pub trait Handler<M: ManagedTypeApi> {
+pub trait Handler<M: VMApi> {
 	/// Type of `CREATE` interrupt.
 	type CreateInterrupt;
 	/// Feedback value for `CREATE` interrupt.

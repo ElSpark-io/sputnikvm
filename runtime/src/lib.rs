@@ -35,7 +35,7 @@ pub use crate::handler::{Handler, Transfer};
 pub use crate::interrupt::{Resolve, ResolveCall, ResolveCreate};
 
 use alloc::rc::Rc;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
+use elrond_wasm::{api::VMApi, types::ManagedVec};
 
 macro_rules! step {
 	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({
@@ -107,7 +107,7 @@ macro_rules! step {
 /// EVM runtime.
 ///
 /// The runtime wraps an EVM `Machine` with support of return data and context.
-pub struct Runtime<'config, M: ManagedTypeApi> {
+pub struct Runtime<'config, M: VMApi> {
 	machine: Machine<M>,
 	status: Result<(), ExitReason>,
 	return_data_buffer: ManagedBuffer<M>,
@@ -115,7 +115,7 @@ pub struct Runtime<'config, M: ManagedTypeApi> {
 	_config: &'config Config,
 }
 
-impl<'config, M: ManagedTypeApi> Runtime<'config, M> {
+impl<'config, M: VMApi> Runtime<'config, M> {
 	/// Create a new runtime with given code and data.
 	pub fn new(
 		code: Rc<ManagedBuffer<M>>,

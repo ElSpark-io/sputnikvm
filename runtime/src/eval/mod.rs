@@ -3,16 +3,16 @@ mod macros;
 mod system;
 
 use crate::{CallScheme, ExitReason, Handler, Opcode, Runtime};
-use elrond_wasm::api::ManagedTypeApi;
+use elrond_wasm::api::VMApi;
 
-pub enum Control<M: ManagedTypeApi, H: Handler<M>> {
+pub enum Control<M: VMApi, H: Handler<M>> {
 	Continue,
 	CallInterrupt(H::CallInterrupt),
 	CreateInterrupt(H::CreateInterrupt),
 	Exit(ExitReason),
 }
 
-fn handle_other<M: ManagedTypeApi, H: Handler<M>>(
+fn handle_other<M: VMApi, H: Handler<M>>(
 	state: &mut Runtime<M>,
 	opcode: Opcode,
 	handler: &mut H,
@@ -23,7 +23,7 @@ fn handle_other<M: ManagedTypeApi, H: Handler<M>>(
 	}
 }
 
-pub fn eval<M: ManagedTypeApi, H: Handler<M>>(
+pub fn eval<M: VMApi, H: Handler<M>>(
 	state: &mut Runtime<M>,
 	opcode: Opcode,
 	handler: &mut H,

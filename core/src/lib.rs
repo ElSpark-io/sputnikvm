@@ -22,15 +22,15 @@ pub use crate::stack::Stack;
 pub use crate::valids::Valids;
 
 use crate::eval::{eval, Control};
-use alloc::rc::Rc;
-use eltypes::ManagedBufferAccess;
-use core::ops::Range;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedBuffer};
-use primitive_types::U256;
 use crate::utils::*;
+use alloc::rc::Rc;
+use core::ops::Range;
+use elrond_wasm::{api::VMApi, types::ManagedBuffer};
+use eltypes::ManagedBufferAccess;
+use primitive_types::U256;
 
 /// Core execution layer for EVM.
-pub struct Machine<M: ManagedTypeApi> {
+pub struct Machine<M: VMApi> {
 	/// Program data.
 	data: Rc<ManagedBuffer<M>>,
 	/// Program code.
@@ -47,7 +47,7 @@ pub struct Machine<M: ManagedTypeApi> {
 	stack: Stack<M>,
 }
 
-impl<M: ManagedTypeApi> Machine<M> {
+impl<M: VMApi> Machine<M> {
 	/// Reference of machine stack.
 	pub fn stack(&self) -> &Stack<M> {
 		&self.stack

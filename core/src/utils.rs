@@ -1,6 +1,6 @@
 use core::cmp::Ordering;
 use core::ops::{Div, Rem};
-use elrond_wasm::api::ManagedTypeApi;
+use elrond_wasm::api::VMApi;
 use elrond_wasm::types::{ManagedVec, ManagedVecItem};
 use primitive_types::U256;
 

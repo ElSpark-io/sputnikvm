@@ -29,7 +29,7 @@ mod utils;
 
 use alloc::vec::Vec;
 use core::cmp::max;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedBuffer};
+use elrond_wasm::{api::VMApi, types::ManagedBuffer};
 use eltypes::ManagedBufferAccess;
 use evm_core::{ExitError, Opcode, Stack};
 use evm_runtime::{Config, Handler};
@@ -276,7 +276,7 @@ impl<'config> Gasometer<'config> {
 
 /// Calculate the call transaction cost.
 #[allow(clippy::naive_bytecount)]
-pub fn call_transaction_cost<M: ManagedTypeApi>(
+pub fn call_transaction_cost<M: VMApi>(
 	data: &ManagedBuffer<M>,
 	access_list: &[(H160, Vec<H256>)],
 ) -> TransactionCost {
@@ -294,7 +294,7 @@ pub fn call_transaction_cost<M: ManagedTypeApi>(
 
 /// Calculate the create transaction cost.
 #[allow(clippy::naive_bytecount)]
-pub fn create_transaction_cost<M: ManagedTypeApi>(
+pub fn create_transaction_cost<M: VMApi>(
 	data: &ManagedBuffer<M>,
 	access_list: &[(H160, Vec<H256>)],
 ) -> TransactionCost {
@@ -443,7 +443,7 @@ pub fn static_opcode_cost(opcode: Opcode) -> Option<u64> {
 
 /// Calculate the opcode cost.
 #[allow(clippy::nonminimal_bool)]
-pub fn dynamic_opcode_cost<H: Handler<M>, M: ManagedTypeApi>(
+pub fn dynamic_opcode_cost<H: Handler<M>, M: VMApi>(
 	address: H160,
 	opcode: Opcode,
 	stack: &Stack<M>,

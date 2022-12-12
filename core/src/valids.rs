@@ -1,12 +1,15 @@
 use crate::Opcode;
+use elrond_wasm::{
+	api::VMApi,
+	types::{ManagedBuffer, ManagedVec},
+};
 use eltypes::ManagedBufferAccess;
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
 
 /// Mapping of valid jump destination from code.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Valids<M: ManagedTypeApi>(ManagedVec<M, bool>);
+pub struct Valids<M: VMApi>(ManagedVec<M, bool>);
 
-impl<M: ManagedTypeApi> Valids<M> {
+impl<M: VMApi> Valids<M> {
 	/// Create a new valid mapping from given code bytes.
 	pub fn new(code: &ManagedBuffer<M>) -> Self {
 		let mut valids: ManagedVec<M, bool> = ManagedVec::new();

@@ -8,21 +8,21 @@ use alloc::{
 };
 use core::mem;
 use elrond_wasm::{
-	api::ManagedTypeApi,
+	api::VMApi,
 	types::{ManagedBuffer, ManagedVec},
 };
 use eltypes::EH256;
 use primitive_types::{H160, H256, U256};
 
 #[derive(Clone, Debug)]
-pub struct MemoryStackAccount<M: ManagedTypeApi> {
+pub struct MemoryStackAccount<M: VMApi> {
 	pub basic: Basic,
 	pub code: Option<ManagedBuffer<M>>,
 	pub reset: bool,
 }
 
 #[derive(Clone, Debug)]
-pub struct MemoryStackSubstate<'config, M: ManagedTypeApi> {
+pub struct MemoryStackSubstate<'config, M: VMApi> {
 	metadata: StackSubstateMetadata<'config>,
 	parent: Option<Box<MemoryStackSubstate<'config, M>>>,
 	// logs: ManagedVec<M, Log>,
@@ -31,7 +31,7 @@ pub struct MemoryStackSubstate<'config, M: ManagedTypeApi> {
 	deletes: BTreeSet<H160>,
 }
 
-impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
+impl<'config, M: VMApi> MemoryStackSubstate<'config, M> {
 	pub fn new(metadata: StackSubstateMetadata<'config>) -> Self {
 		Self {
 			metadata,
@@ -402,14 +402,14 @@ impl<'config, M: ManagedTypeApi> MemoryStackSubstate<'config, M> {
 }
 
 #[derive(Clone, Debug)]
-pub struct MemoryStackState<'backend, 'config, B, M: ManagedTypeApi> {
+pub struct MemoryStackState<'backend, 'config, B, M: VMApi> {
 	backend: &'backend B,
 	substate: MemoryStackSubstate<'config, M>,
 	//TODO: Remove vec_test
 	vec_test: ManagedVec<M, u8>,
 }
 
-impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> Backend<M>
+impl<'backend, 'config, B: Backend<M>, M: VMApi> Backend<M>
 	for MemoryStackState<'backend, 'config, B, M>
 {
 	fn gas_price(&self) -> U256 {
@@ -475,7 +475,7 @@ impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> Backend<M>
 	}
 }
 
-impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> StackState<'config, M>
+impl<'backend, 'config, B: Backend<M>, M: VMApi> StackState<'config, M>
 	for MemoryStackState<'backend, 'config, B, M>
 {
 	fn metadata(&self) -> &StackSubstateMetadata<'config> {
@@ -561,9 +561,7 @@ impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi> StackState<'config, M>
 	}
 }
 
-impl<'backend, 'config, B: Backend<M>, M: ManagedTypeApi>
-	MemoryStackState<'backend, 'config, B, M>
-{
+impl<'backend, 'config, B: Backend<M>, M: VMApi> MemoryStackState<'backend, 'config, B, M> {
 	pub fn new(metadata: StackSubstateMetadata<'config>, backend: &'backend B) -> Self {
 		Self {
 			backend,

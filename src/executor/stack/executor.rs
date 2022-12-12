@@ -9,10 +9,13 @@ use alloc::{
 	rc::Rc,
 	vec::Vec,
 };
-use eltypes::{EH256, ManagedBufferAccess};
+use eltypes::{ManagedBufferAccess, EH256};
 
 use core::{cmp::min, convert::Infallible};
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
+use elrond_wasm::{
+	api::VMApi,
+	types::{ManagedBuffer, ManagedVec},
+};
 use evm_core::{ExitFatal, ExitRevert};
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
@@ -189,7 +192,7 @@ impl<'config> StackSubstateMetadata<'config> {
 }
 
 #[auto_impl::auto_impl(&mut, Box)]
-pub trait StackState<'config, M: ManagedTypeApi>: Backend<M> {
+pub trait StackState<'config, M: VMApi>: Backend<M> {
 	fn metadata(&self) -> &StackSubstateMetadata<'config>;
 	fn metadata_mut(&mut self) -> &mut StackSubstateMetadata<'config>;
 
@@ -232,14 +235,14 @@ pub trait StackState<'config, M: ManagedTypeApi>: Backend<M> {
 
 /// Data returned by a precompile on success.
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PrecompileOutput<M: ManagedTypeApi> {
+pub struct PrecompileOutput<M: VMApi> {
 	pub exit_status: ExitSucceed,
 	pub output: ManagedBuffer<M>,
 }
 
 /// Data returned by a precompile in case of failure.
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub enum PrecompileFailure<M: ManagedTypeApi> {
+pub enum PrecompileFailure<M: VMApi> {
 	/// Reverts the state changes and consume all the gas.
 	Error { exit_status: ExitError },
 	/// Reverts the state changes.
@@ -252,14 +255,14 @@ pub enum PrecompileFailure<M: ManagedTypeApi> {
 	Fatal { exit_status: ExitFatal },
 }
 
-impl<M: ManagedTypeApi> From<ExitError> for PrecompileFailure<M> {
+impl<M: VMApi> From<ExitError> for PrecompileFailure<M> {
 	fn from(error: ExitError) -> PrecompileFailure<M> {
 		PrecompileFailure::Error { exit_status: error }
 	}
 }
 
 /// Handle provided to a precompile to interact with the EVM.
-pub trait PrecompileHandle<M: ManagedTypeApi> {
+pub trait PrecompileHandle<M: VMApi> {
 	/// Perform subcall in provided context.
 	/// Precompile specifies in which context the subcall is executed.
 	fn call(
@@ -308,7 +311,7 @@ pub type PrecompileResult<M> = Result<PrecompileOutput<M>, PrecompileFailure<M>>
 /// A set of precompiles.
 /// Checks of the provided address being in the precompile set should be
 /// as cheap as possible since it may be called often.
-pub trait PrecompileSet<M: ManagedTypeApi> {
+pub trait PrecompileSet<M: VMApi> {
 	/// Tries to execute a precompile in the precompile set.
 	/// If the provided address is not a precompile, returns None.
 	fn execute(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>>;
@@ -319,7 +322,7 @@ pub trait PrecompileSet<M: ManagedTypeApi> {
 	fn is_precompile(&self, address: H160) -> bool;
 }
 
-impl<M: ManagedTypeApi> PrecompileSet<M> for () {
+impl<M: VMApi> PrecompileSet<M> for () {
 	fn execute(&self, _: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		None
 	}
@@ -343,7 +346,7 @@ pub type PrecompileFn<M> = fn(
 	bool,
 ) -> Result<(PrecompileOutput<M>, u64), PrecompileFailure<M>>;
 
-impl<M: ManagedTypeApi> PrecompileSet<M> for BTreeMap<H160, PrecompileFn<M>> {
+impl<M: VMApi> PrecompileSet<M> for BTreeMap<H160, PrecompileFn<M>> {
 	fn execute(&self, handle: &mut impl PrecompileHandle<M>) -> Option<PrecompileResult<M>> {
 		let address = handle.code_address();
 
@@ -372,7 +375,7 @@ impl<M: ManagedTypeApi> PrecompileSet<M> for BTreeMap<H160, PrecompileFn<M>> {
 }
 
 /// Stack-based executor.
-pub struct StackExecutor<'config, 'precompiles, M: ManagedTypeApi, S, P> {
+pub struct StackExecutor<'config, 'precompiles, M: VMApi, S, P> {
 	config: &'config Config,
 	state: S,
 	precompile_set: &'precompiles P,
@@ -380,7 +383,7 @@ pub struct StackExecutor<'config, 'precompiles, M: ManagedTypeApi, S, P> {
 	vec_test: ManagedBuffer<M>,
 }
 
-impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: ManagedTypeApi>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: VMApi>
 	StackExecutor<'config, 'precompiles, M, S, P>
 {
 	/// Return a reference of the Config.
@@ -703,11 +706,13 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: M
 			};
 		}
 
-		fn check_first_byte<M: ManagedTypeApi>(config: &Config, code: &ManagedBuffer<M>) -> Result<(), ExitError> {
+		fn check_first_byte<M: VMApi>(
+			config: &Config,
+			code: &ManagedBuffer<M>,
+		) -> Result<(), ExitError> {
 			// TODO: Check to be sure
 			// if config.disallow_executable_format && Some(&Opcode::EOFMAGIC.as_u8()) == code.get(0)
-			if config.disallow_executable_format && Opcode::EOFMAGIC.as_u8() == code.get(0)
-			{
+			if config.disallow_executable_format && Opcode::EOFMAGIC.as_u8() == code.get(0) {
 				return Err(ExitError::InvalidCode(Opcode::EOFMAGIC));
 			}
 			Ok(())
@@ -766,12 +771,20 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: M
 		{
 			if self.code_size(address) != U256::zero() {
 				let _ = self.exit_substate(StackExitKind::Failed);
-				return Capture::Exit((ExitError::CreateCollision.into(), None, ManagedBuffer::new()));
+				return Capture::Exit((
+					ExitError::CreateCollision.into(),
+					None,
+					ManagedBuffer::new(),
+				));
 			}
 
 			if self.nonce(address) > U256::zero() {
 				let _ = self.exit_substate(StackExitKind::Failed);
-				return Capture::Exit((ExitError::CreateCollision.into(), None, ManagedBuffer::new()));
+				return Capture::Exit((
+					ExitError::CreateCollision.into(),
+					None,
+					ManagedBuffer::new(),
+				));
 			}
 
 			self.state.reset_storage(address);
@@ -869,6 +882,11 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: M
 				Capture::Exit((ExitReason::Fatal(e), None, ManagedBuffer::new()))
 			}
 		}
+		// Capture::Exit((
+		// 	ExitReason::Succeed(ExitSucceed::Returned),
+		// 	None,
+		// 	ManagedBuffer::new(),
+		// ))
 	}
 
 	#[allow(clippy::too_many_arguments)]
@@ -1017,8 +1035,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: M
 	}
 }
 
-impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: ManagedTypeApi>
-	Handler<M> for StackExecutor<'config, 'precompiles, M, S, P>
+impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: VMApi> Handler<M>
+	for StackExecutor<'config, 'precompiles, M, S, P>
 {
 	type CreateInterrupt = Infallible;
 	type CreateFeedback = Infallible;
@@ -1265,7 +1283,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: M
 	}
 }
 
-struct StackExecutorHandle<'inner, 'config, 'precompiles, M: ManagedTypeApi, S, P> {
+struct StackExecutorHandle<'inner, 'config, 'precompiles, M: VMApi, S, P> {
 	executor: &'inner mut StackExecutor<'config, 'precompiles, M, S, P>,
 	code_address: H160,
 	input: &'inner ManagedBuffer<M>,
@@ -1274,14 +1292,8 @@ struct StackExecutorHandle<'inner, 'config, 'precompiles, M: ManagedTypeApi, S, 
 	is_static: bool,
 }
 
-impl<
-		'inner,
-		'config,
-		'precompiles,
-		S: StackState<'config, M>,
-		P: PrecompileSet<M>,
-		M: ManagedTypeApi,
-	> PrecompileHandle<M> for StackExecutorHandle<'inner, 'config, 'precompiles, M, S, P>
+impl<'inner, 'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: VMApi>
+	PrecompileHandle<M> for StackExecutorHandle<'inner, 'config, 'precompiles, M, S, P>
 {
 	// Perform subcall in provided context.
 	/// Precompile specifies in which context the subcall is executed.

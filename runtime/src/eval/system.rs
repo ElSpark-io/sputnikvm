@@ -5,12 +5,15 @@ use crate::{
 };
 
 use core::cmp::min;
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
-use eltypes::{EH256, ManagedBufferAccess};
+use elrond_wasm::{
+	api::VMApi,
+	types::{ManagedBuffer, ManagedVec},
+};
+use eltypes::{ManagedBufferAccess, EH256};
 use primitive_types::{H256, U256};
 use sha3::{Digest, Keccak256};
 
-pub fn sha3<H: Handler<M>, M: ManagedTypeApi>(runtime: &mut Runtime<M>) -> Control<M, H> {
+pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> {
 	pop_u256!(runtime, from, len);
 
 	try_or_fail!(runtime.machine.memory_mut().resize_offset(from, len));
@@ -29,7 +32,7 @@ pub fn sha3<H: Handler<M>, M: ManagedTypeApi>(runtime: &mut Runtime<M>) -> Contr
 	Control::Continue
 }
 
-pub fn chainid<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn chainid<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -38,7 +41,7 @@ pub fn chainid<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn address<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn address<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 ) -> Control<M, H> {
 	let ret = H256::from(runtime.context.address);
@@ -47,7 +50,7 @@ pub fn address<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn balance<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn balance<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -57,7 +60,7 @@ pub fn balance<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn selfbalance<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn selfbalance<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -66,7 +69,7 @@ pub fn selfbalance<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn origin<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn origin<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -76,7 +79,7 @@ pub fn origin<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn caller<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn caller<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 ) -> Control<M, H> {
 	let ret = H256::from(runtime.context.caller);
@@ -85,7 +88,7 @@ pub fn caller<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn callvalue<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn callvalue<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 ) -> Control<M, H> {
 	let mut ret = H256::default();
@@ -95,7 +98,7 @@ pub fn callvalue<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn gasprice<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn gasprice<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -106,7 +109,7 @@ pub fn gasprice<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn base_fee<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn base_fee<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -117,7 +120,7 @@ pub fn base_fee<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn extcodesize<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn extcodesize<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -127,7 +130,7 @@ pub fn extcodesize<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn extcodehash<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn extcodehash<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -140,7 +143,7 @@ pub fn extcodehash<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn extcodecopy<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn extcodecopy<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -164,7 +167,7 @@ pub fn extcodecopy<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn returndatasize<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn returndatasize<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 ) -> Control<M, H> {
 	let size = U256::from(runtime.return_data_buffer.len());
@@ -173,7 +176,7 @@ pub fn returndatasize<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn returndatacopy<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn returndatacopy<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 ) -> Control<M, H> {
 	pop_u256!(runtime, memory_offset, data_offset, len);
@@ -201,7 +204,7 @@ pub fn returndatacopy<'config, H: Handler<M>, M: ManagedTypeApi>(
 	}
 }
 
-pub fn blockhash<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn blockhash<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -211,7 +214,7 @@ pub fn blockhash<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn coinbase<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn coinbase<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -219,7 +222,7 @@ pub fn coinbase<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn timestamp<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn timestamp<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -227,7 +230,7 @@ pub fn timestamp<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn number<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn number<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -235,7 +238,7 @@ pub fn number<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn difficulty<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn difficulty<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -243,7 +246,7 @@ pub fn difficulty<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn gaslimit<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn gaslimit<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -251,7 +254,7 @@ pub fn gaslimit<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn sload<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn sload<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -268,7 +271,7 @@ pub fn sload<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn sstore<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn sstore<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &mut H,
 ) -> Control<M, H> {
@@ -286,7 +289,7 @@ pub fn sstore<'config, H: Handler<M>, M: ManagedTypeApi>(
 	}
 }
 
-pub fn gas<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn gas<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &H,
 ) -> Control<M, H> {
@@ -295,7 +298,7 @@ pub fn gas<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Continue
 }
 
-pub fn log<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn log<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	n: u8,
 	handler: &mut H,
@@ -328,7 +331,7 @@ pub fn log<'config, H: Handler<M>, M: ManagedTypeApi>(
 	}
 }
 
-pub fn suicide<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn suicide<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	handler: &mut H,
 ) -> Control<M, H> {
@@ -342,7 +345,7 @@ pub fn suicide<'config, H: Handler<M>, M: ManagedTypeApi>(
 	Control::Exit(ExitSucceed::Suicided.into())
 }
 
-pub fn create<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn create<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	is_create2: bool,
 	handler: &mut H,
@@ -406,7 +409,7 @@ pub fn create<'config, H: Handler<M>, M: ManagedTypeApi>(
 	}
 }
 
-pub fn call<'config, H: Handler<M>, M: ManagedTypeApi>(
+pub fn call<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	scheme: CallScheme,
 	handler: &mut H,

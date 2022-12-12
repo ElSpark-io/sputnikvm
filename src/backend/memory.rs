@@ -1,7 +1,10 @@
 use super::{Apply, ApplyBackend, Backend, Basic, Log};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use elrond_wasm::{api::ManagedTypeApi, types::{ManagedVec, ManagedBuffer}};
+use elrond_wasm::{
+	api::VMApi,
+	types::{ManagedBuffer, ManagedVec},
+};
 use eltypes::EH256;
 use primitive_types::{H160, H256, U256};
 
@@ -12,7 +15,7 @@ use primitive_types::{H160, H256, U256};
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MemoryVicinity<M: ManagedTypeApi> {
+pub struct MemoryVicinity<M: VMApi> {
 	/// Gas price.
 	pub gas_price: U256,
 	/// Origin.
@@ -42,7 +45,7 @@ pub struct MemoryVicinity<M: ManagedTypeApi> {
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MemoryAccount<M: ManagedTypeApi> {
+pub struct MemoryAccount<M: VMApi> {
 	/// Account nonce.
 	pub nonce: U256,
 	/// Account balance.
@@ -53,21 +56,26 @@ pub struct MemoryAccount<M: ManagedTypeApi> {
 	pub code: ManagedBuffer<M>,
 }
 
-impl <M: ManagedTypeApi> Default for MemoryAccount<M> {
-    fn default() -> Self {
-        Self { nonce: Default::default(), balance: Default::default(), storage: Default::default(), code: Default::default() }
-    }
+impl<M: VMApi> Default for MemoryAccount<M> {
+	fn default() -> Self {
+		Self {
+			nonce: Default::default(),
+			balance: Default::default(),
+			storage: Default::default(),
+			code: Default::default(),
+		}
+	}
 }
 
 /// Memory backend, storing all state values in a `BTreeMap` in memory.
 #[derive(Clone, Debug)]
-pub struct MemoryBackend<'vicinity, M: ManagedTypeApi> {
+pub struct MemoryBackend<'vicinity, M: VMApi> {
 	vicinity: &'vicinity MemoryVicinity<M>,
 	state: BTreeMap<H160, MemoryAccount<M>>,
 	// logs: ManagedVec<M, Log>,
 }
 
-impl<'vicinity, M: ManagedTypeApi> MemoryBackend<'vicinity, M> {
+impl<'vicinity, M: VMApi> MemoryBackend<'vicinity, M> {
 	/// Create a new memory backend.
 	pub fn new(
 		vicinity: &'vicinity MemoryVicinity<M>,
@@ -91,7 +99,7 @@ impl<'vicinity, M: ManagedTypeApi> MemoryBackend<'vicinity, M> {
 	}
 }
 
-impl<'vicinity, M: ManagedTypeApi> Backend<M> for MemoryBackend<'vicinity, M> {
+impl<'vicinity, M: VMApi> Backend<M> for MemoryBackend<'vicinity, M> {
 	fn gas_price(&self) -> U256 {
 		self.vicinity.gas_price
 	}
@@ -165,7 +173,7 @@ impl<'vicinity, M: ManagedTypeApi> Backend<M> for MemoryBackend<'vicinity, M> {
 	}
 }
 
-impl<'vicinity, M: ManagedTypeApi> ApplyBackend<M> for MemoryBackend<'vicinity, M> {
+impl<'vicinity, M: VMApi> ApplyBackend<M> for MemoryBackend<'vicinity, M> {
 	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
 	where
 		A: IntoIterator<Item = Apply<I, M>>,

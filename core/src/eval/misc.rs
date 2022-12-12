@@ -2,21 +2,21 @@ use super::Control;
 use crate::{ExitError, ExitFatal, ExitRevert, ExitSucceed, Machine};
 use core::cmp::min;
 use elrond_wasm::{
-	api::ManagedTypeApi,
+	api::VMApi,
 	types::{ManagedBuffer, ManagedVec},
 };
 use eltypes::{ManagedBufferAccess, ManagedVecforEH256, ToEH256};
 use primitive_types::{H256, U256};
 
 #[inline]
-pub fn codesize<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn codesize<M: VMApi>(state: &mut Machine<M>) -> Control {
 	let size = U256::from(state.code.len());
 	push_u256!(state, size);
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn codecopy<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn codecopy<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, memory_offset, code_offset, len);
 
 	try_or_fail!(state.memory.resize_offset(memory_offset, len));
@@ -30,7 +30,7 @@ pub fn codecopy<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn calldataload<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn calldataload<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, index);
 
 	let mut load = [0u8; 32];
@@ -51,14 +51,14 @@ pub fn calldataload<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn calldatasize<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn calldatasize<M: VMApi>(state: &mut Machine<M>) -> Control {
 	let len = U256::from(state.data.len());
 	push_u256!(state, len);
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn calldatacopy<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn calldatacopy<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, memory_offset, data_offset, len);
 
 	try_or_fail!(state.memory.resize_offset(memory_offset, len));
@@ -76,26 +76,30 @@ pub fn calldatacopy<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn pop<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn pop<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop!(state, _val);
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn mload<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn mload<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, index);
 	try_or_fail!(state.memory.resize_offset(index, U256::from(32)));
 	let index = as_usize_or_fail!(index);
 	let mut slice = [0u8; 32];
 	// TODO: Changed a lot, check this
-	state.memory.get(index, 32).load_slice(0, &mut slice).unwrap();
+	state
+		.memory
+		.get(index, 32)
+		.load_slice(0, &mut slice)
+		.unwrap();
 	let value = H256::from_slice(&slice);
 	push!(state, value.to_eh256());
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn mstore<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn mstore<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, index);
 	pop!(state, value);
 	try_or_fail!(state.memory.resize_offset(index, U256::from(32)));
@@ -110,7 +114,7 @@ pub fn mstore<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn mstore8<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn mstore8<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, index, value);
 	try_or_fail!(state.memory.resize_offset(index, U256::one()));
 	let index = as_usize_or_fail!(index);
@@ -124,7 +128,7 @@ pub fn mstore8<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn jump<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn jump<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, dest);
 	let dest = as_usize_or_fail!(dest, ExitError::InvalidJump);
 
@@ -136,7 +140,7 @@ pub fn jump<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn jumpi<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn jumpi<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, dest);
 	pop!(state, value);
 
@@ -153,19 +157,19 @@ pub fn jumpi<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn pc<M: ManagedTypeApi>(state: &mut Machine<M>, position: usize) -> Control {
+pub fn pc<M: VMApi>(state: &mut Machine<M>, position: usize) -> Control {
 	push_u256!(state, U256::from(position));
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn msize<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn msize<M: VMApi>(state: &mut Machine<M>) -> Control {
 	push_u256!(state, state.memory.effective_len());
 	Control::Continue(1)
 }
 
 #[inline]
-pub fn push<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize, position: usize) -> Control {
+pub fn push<M: VMApi>(state: &mut Machine<M>, n: usize, position: usize) -> Control {
 	let end = min(position + 1 + n, state.code.len());
 	let slice = &state.code.copy_slice(position + 1, end).unwrap();
 	let mut val = [0u8; 32];
@@ -178,7 +182,7 @@ pub fn push<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize, position: usize
 }
 
 #[inline]
-pub fn dup<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize) -> Control {
+pub fn dup<M: VMApi>(state: &mut Machine<M>, n: usize) -> Control {
 	let value = match state.stack.peek(n - 1) {
 		Ok(value) => value,
 		Err(e) => return Control::Exit(e.into()),
@@ -188,7 +192,7 @@ pub fn dup<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize) -> Control {
 }
 
 #[inline]
-pub fn swap<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize) -> Control {
+pub fn swap<M: VMApi>(state: &mut Machine<M>, n: usize) -> Control {
 	let val1 = match state.stack.peek(0) {
 		Ok(value) => value,
 		Err(e) => return Control::Exit(e.into()),
@@ -209,7 +213,7 @@ pub fn swap<M: ManagedTypeApi>(state: &mut Machine<M>, n: usize) -> Control {
 }
 
 #[inline]
-pub fn ret<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn ret<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, start, len);
 	try_or_fail!(state.memory.resize_offset(start, len));
 	state.return_range = start..(start + len);
@@ -217,7 +221,7 @@ pub fn ret<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
 }
 
 #[inline]
-pub fn revert<M: ManagedTypeApi>(state: &mut Machine<M>) -> Control {
+pub fn revert<M: VMApi>(state: &mut Machine<M>) -> Control {
 	pop_u256!(state, start, len);
 	try_or_fail!(state.memory.resize_offset(start, len));
 	state.return_range = start..(start + len);

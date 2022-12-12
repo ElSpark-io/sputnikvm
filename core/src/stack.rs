@@ -1,15 +1,15 @@
 use crate::ExitError;
-use elrond_wasm::{api::ManagedTypeApi, types::ManagedVec};
+use elrond_wasm::{api::VMApi, types::ManagedVec};
 use eltypes::EH256;
 
 /// EVM stack.
 #[derive(Clone, Debug)]
-pub struct Stack<M: ManagedTypeApi> {
+pub struct Stack<M: VMApi> {
 	data: ManagedVec<M, EH256>,
 	limit: usize,
 }
 
-impl<M: ManagedTypeApi> Stack<M> {
+impl<M: VMApi> Stack<M> {
 	/// Create a new stack with given limit.
 	pub fn new(limit: usize) -> Self {
 		Self {
