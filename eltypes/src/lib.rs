@@ -8,14 +8,6 @@ elrond_wasm::derive_imports!();
 #[derive(
 	ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Default,
 )]
-pub struct Hello<M: VMApi> {
-	pub eth_address: ETHAddress,
-	pub manage_vec: ManagedVec<M, EH256>,
-}
-
-#[derive(
-	ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Default,
-)]
 pub struct ETHAddress {
 	pub data: [u8; 20],
 }
@@ -164,8 +156,8 @@ impl<M: VMApi> ManagedBufferAccess<M> for ManagedBuffer<M> {
 		let mut dest_slice = [0u8; 1];
 		let load_result = self.load_slice(index, &mut dest_slice);
 		match load_result {
-			Result::Ok(_) => todo!(),
-			Result::Err(_) => todo!(),
+			Result::Ok(_) => Some(dest_slice[0]),
+			Result::Err(_) => None,
 		}
 	}
 

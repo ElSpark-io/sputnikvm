@@ -6,7 +6,7 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
-use elrond_wasm::{api::VMApi, contract_base::ContractBase, types::ManagedBuffer};
+use elrond_wasm::{api::VMApi, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
 /// Basic account information.
@@ -27,7 +27,7 @@ pub use ethereum::Log;
 
 /// Apply state operation.
 #[derive(Clone, Debug)]
-pub enum Apply<I, M: ContractBase::Api> {
+pub enum Apply<I, M: VMApi> {
 	/// Modify or create at address.
 	Modify {
 		/// Address.

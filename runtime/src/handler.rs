@@ -1,6 +1,7 @@
 use crate::{Capture, Context, CreateScheme, ExitError, ExitReason, Machine, Opcode, Stack};
 use elrond_wasm::{
 	api::VMApi,
+	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
 use eltypes::EH256;

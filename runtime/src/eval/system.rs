@@ -7,6 +7,7 @@ use crate::{
 use core::cmp::min;
 use elrond_wasm::{
 	api::VMApi,
+	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
 use eltypes::{ManagedBufferAccess, EH256};

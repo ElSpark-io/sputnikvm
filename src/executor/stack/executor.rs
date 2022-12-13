@@ -9,11 +9,12 @@ use alloc::{
 	rc::Rc,
 	vec::Vec,
 };
+use elrond_wasm::api::VMApi;
 use eltypes::{ManagedBufferAccess, EH256};
 
 use core::{cmp::min, convert::Infallible};
 use elrond_wasm::{
-	api::VMApi,
+	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
 use evm_core::{ExitFatal, ExitRevert};

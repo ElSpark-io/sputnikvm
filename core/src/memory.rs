@@ -1,8 +1,9 @@
 use crate::{ExitError, ExitFatal};
 use core::cmp::min;
 use core::ops::{BitAnd, Not};
+use elrond_wasm::api::VMApi;
 use elrond_wasm::types::ManagedBuffer;
-use elrond_wasm::{api::VMApi, types::ManagedVec};
+use elrond_wasm::{contract_base::ContractBase, types::ManagedVec};
 use eltypes::ManagedBufferAccess;
 use primitive_types::U256;
 

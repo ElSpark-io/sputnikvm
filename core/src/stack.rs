@@ -1,5 +1,5 @@
 use crate::ExitError;
-use elrond_wasm::{api::VMApi, types::ManagedVec};
+use elrond_wasm::{api::VMApi, contract_base::ContractBase, types::ManagedVec};
 use eltypes::EH256;
 
 /// EVM stack.

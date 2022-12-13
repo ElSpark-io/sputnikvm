@@ -7,8 +7,9 @@ use alloc::{
 	vec::Vec,
 };
 use core::mem;
+use elrond_wasm::api::VMApi;
 use elrond_wasm::{
-	api::VMApi,
+	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
 use eltypes::EH256;
