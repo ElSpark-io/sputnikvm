@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use elrond_wasm::api::{HandleConstraints, InvalidSliceError, VMApi};
+use elrond_wasm::api::{InvalidSliceError, VMApi};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -49,8 +49,7 @@ impl Eq for EH256 {}
 
 impl PartialEq for EH256 {
 	fn eq(&self, other: &Self) -> bool {
-		//TODO: Implement
-		true
+		self.data == other.data
 	}
 }
 
