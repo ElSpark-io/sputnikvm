@@ -4,7 +4,7 @@ use elrond_wasm::{
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::ManagedBufferAccess;
+use eltypes::{ManagedBufferAccess, Resizable};
 
 /// Mapping of valid jump destination from code.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,13 +14,13 @@ impl<M: VMApi> Valids<M> {
 	/// Create a new valid mapping from given code bytes.
 	pub fn new(code: &ManagedBuffer<M>) -> Self {
 		let mut valids: ManagedVec<M, bool> = ManagedVec::new();
-		// valids.resize(code.len(), false);
+		valids.resize(code.len(), false);
 
 		let mut i = 0;
 		while i < code.len() {
 			let opcode = Opcode(code.get(i));
 			if opcode == Opcode::JUMPDEST {
-				valids.set(i, &true);
+				valids.set(i, &true).unwrap();
 				i += 1;
 			} else if let Some(v) = opcode.is_push() {
 				i += v as usize + 1;

@@ -202,3 +202,26 @@ impl<M: VMApi> ManagedBufferAccess<M> for ManagedBuffer<M> {
 		ManagedBufferRefIterator::new(self)
 	}
 }
+
+pub trait Resizable<M: VMApi, T: ManagedVecItem> {
+	fn resize(&mut self, size: usize, value: T);
+}
+
+impl<M: VMApi, T: ManagedVecItem + Clone> Resizable<M, T> for ManagedVec<M, T> {
+	fn resize(&mut self, size: usize, item: T) {
+		let len = self.len();
+
+		if size > len {
+			// extend
+			for _ in len..size {
+				self.push(item.clone());
+			}
+		} else {
+			// truncate
+			self.clear();
+			for _ in 0..size {
+				self.push(item.clone());
+			}
+		}
+	}
+}
