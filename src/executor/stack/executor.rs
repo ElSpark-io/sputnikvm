@@ -439,7 +439,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 
 	/// Execute the runtime until it returns.
 	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>) -> ExitReason {
-		match runtime.run(self) {
+		let x = runtime.run(self);
+		match x {
 			Capture::Exit(s) => s,
 			Capture::Trap(_) => unreachable!("Trap is Infallible"),
 		}
@@ -722,7 +723,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		fn l64(gas: u64) -> u64 {
 			gas - gas / 64
 		}
-
+		let a = init_code.to_vec();
 		let address = self.create_address(scheme);
 
 		self.state.metadata_mut().access_address(caller);

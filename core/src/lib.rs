@@ -35,7 +35,7 @@ pub struct Machine<M: VMApi> {
 	/// Program data.
 	data: Rc<ManagedBuffer<M>>,
 	/// Program code.
-	code: Rc<ManagedBuffer<M>>,
+	pub code: Rc<ManagedBuffer<M>>,
 	/// Program counter.
 	position: Result<usize, ExitReason>,
 	/// Return value.
@@ -108,24 +108,21 @@ impl<M: VMApi> Machine<M> {
 	/// Copy and get the return value of the machine, if any.
 	pub fn return_value(&self) -> ManagedBuffer<M> {
 		if self.return_range.start > U256::from(usize::MAX) {
-			let ret = ManagedBuffer::new();
+			let mut ret = ManagedBuffer::new();
 			ret.resize(
 				(self.return_range.end - self.return_range.start).as_usize(),
 				0,
 			);
+
 			ret
 		} else if self.return_range.end > U256::from(usize::MAX) {
 			let mut ret = self.memory.get(
 				self.return_range.start.as_usize(),
 				usize::MAX - self.return_range.start.as_usize(),
 			);
-			for i in 0..(self.return_range.end - self.return_range.start).as_usize() {
-				ret.set(i, 0).unwrap();
+			while ret.len() < (self.return_range.end - self.return_range.start).as_usize() {
+				ret.push(0);
 			}
-			// TODO: Old code, check truthfulness
-			// while ret.len() < (self.return_range.end - self.return_range.start).as_usize() {
-			// 	ret.push(0);
-			// }
 			ret
 		} else {
 			self.memory.get(

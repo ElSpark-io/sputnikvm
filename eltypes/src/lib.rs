@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use core::cmp::Ordering;
+
 use elrond_wasm::api::{InvalidSliceError, VMApi};
 
 elrond_wasm::imports!();
@@ -78,11 +80,7 @@ pub trait ManagedVecforEH256<M: VMApi> {
 
 impl<M: VMApi> ManagedVecforEH256<M> for EH256 {
 	fn to_managed_buffer(&self) -> ManagedBuffer<M> {
-		let mut result = ManagedBuffer::new();
-		for i in 0..self.data.len() {
-			result.set(i, self.data[i]).unwrap();
-		}
-		result
+		ManagedBuffer::new_from_bytes(&self.data)
 	}
 }
 
@@ -133,7 +131,7 @@ pub trait ManagedBufferAccess<M: VMApi> {
 	fn get(&self, index: usize) -> u8;
 	fn try_get(&self, index: usize) -> Option<u8>;
 	fn set(&mut self, index: usize, data: u8) -> Result<(), InvalidSliceError>;
-	fn resize(&self, size: usize, value: u8) -> ManagedBuffer<M>;
+	fn resize(&mut self, size: usize, value: u8);
 	// fn as_bytes(&self) -> &[u8];
 	fn to_vec(&self) -> Vec<u8>;
 	fn iter(&self) -> ManagedBufferRefIterator<M>;
@@ -164,12 +162,21 @@ impl<M: VMApi> ManagedBufferAccess<M> for ManagedBuffer<M> {
 		self.set_slice(index, &[byte])
 	}
 
-	fn resize(&self, size: usize, byte: u8) -> ManagedBuffer<M> {
-		let mut result = ManagedBuffer::new();
-		for i in 0..size {
-			result.set(i, byte).unwrap();
+	fn resize(&mut self, size: usize, byte: u8) {
+		let len = self.len();
+
+		if size > len {
+			// extend
+			for _ in len..size {
+				self.append_bytes(&[byte]);
+			}
+		} else {
+			// truncate
+			self.overwrite(&[]);
+			for _ in 0..size {
+				self.append_bytes(&[byte]);
+			}
 		}
-		result
 	}
 
 	// fn as_bytes(&self) -> &[u8] {

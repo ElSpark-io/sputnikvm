@@ -48,6 +48,7 @@ impl<M: VMApi> Valids<M> {
 	/// Returns `true` if the position is a valid jump destination. If
 	/// not, returns `false`.
 	pub fn is_valid(&self, position: usize) -> bool {
+		let x = self.0.clone().into_vec();
 		if position >= self.0.len() {
 			return false;
 		}

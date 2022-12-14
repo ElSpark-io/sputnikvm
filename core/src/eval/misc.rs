@@ -172,11 +172,13 @@ pub fn msize<M: VMApi>(state: &mut Machine<M>) -> Control {
 #[inline]
 pub fn push<M: VMApi>(state: &mut Machine<M>, n: usize, position: usize) -> Control {
 	let end = min(position + 1 + n, state.code.len());
-	let slice = &state.code.copy_slice(position + 1, end).unwrap();
+	let slice_len = end - position - 1;
+	let slice = &state.code.copy_slice(position + 1, slice_len).unwrap();
 	let mut val = [0u8; 32];
 
-	for i in 0..slice.len() {
-		val[i] = slice.get(i);
+	let offset = 32 - n;
+	for i in 0..slice_len {
+		val[offset + i] = slice.get(i);
 	}
 	push!(state, eltypes::EH256 { data: val });
 	Control::Continue(1 + n)

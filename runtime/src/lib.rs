@@ -29,6 +29,7 @@ mod interrupt;
 
 use elrond_wasm::api::VMApi;
 use elrond_wasm::types::ManagedBuffer;
+use eltypes::ManagedBufferAccess;
 pub use evm_core::*;
 
 pub use crate::context::{CallScheme, Context, CreateScheme};
