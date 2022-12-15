@@ -181,7 +181,9 @@ impl<M: VMApi> Memory<M> {
 				if data_offset > data.len() {
 					empty_managed_vec
 				} else {
-					let returned_data = data.copy_slice(data_offset, min(end, data.len())).unwrap();
+					let end = min(end, data.len());
+					let slice_len = end - data_offset;
+					let returned_data = data.copy_slice(data_offset, slice_len).unwrap();
 					returned_data
 				}
 			}
