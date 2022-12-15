@@ -40,7 +40,7 @@ use alloc::rc::Rc;
 use elrond_wasm::{contract_base::ContractBase, types::ManagedVec};
 
 macro_rules! step {
-	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({
+	( $self:expr, $handler:expr, $kind:expr, $index:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({
 		if let Some((opcode, stack)) = $self.machine.inspect() {
 			event!(Step {
 				context: &$self.context,
@@ -50,7 +50,7 @@ macro_rules! step {
 				memory: $self.machine.memory()
 			});
 
-			match $handler.pre_validate(&$self.context, opcode, stack) {
+			match $handler.pre_validate(&$self.context, opcode, stack, $kind, $index) {
 				Ok(()) => (),
 				Err(e) => {
 					$self.machine.exit(e.clone().into());
@@ -67,7 +67,7 @@ macro_rules! step {
 			},
 		}
 
-		let result = $self.machine.step();
+		let result = $self.machine.step($kind, $index);
 
 		event!(StepResult {
 			result: &result,
@@ -149,16 +149,19 @@ impl<'config, M: VMApi> Runtime<'config, M> {
 		&'a mut self,
 		handler: &mut H,
 	) -> Result<(), Capture<ExitReason, Resolve<'a, 'config, M, H>>> {
-		step!(self, handler, return Err; Ok)
+		step!(self, handler, 0u32, 0u32, return Err; Ok)
 	}
 
 	/// Loop stepping the runtime until it stops.
 	pub fn run<'a, H: Handler<M>>(
 		&'a mut self,
 		handler: &mut H,
+		kind: u32,
 	) -> Capture<ExitReason, Resolve<'a, 'config, M, H>> {
+		let mut i: u32 = 0;
 		loop {
-			step!(self, handler, return;)
+			i += 1;
+			step!(self, handler, kind, i, return;)
 		}
 	}
 }

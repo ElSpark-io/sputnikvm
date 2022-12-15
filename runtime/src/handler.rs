@@ -124,6 +124,8 @@ pub trait Handler<M: VMApi> {
 		context: &Context,
 		opcode: Opcode,
 		stack: &Stack<M>,
+		kind: u32,
+		index: u32,
 	) -> Result<(), ExitError>;
 	/// Handle other unknown external opcodes.
 	fn other(&mut self, opcode: Opcode, _stack: &mut Machine<M>) -> Result<(), ExitError> {

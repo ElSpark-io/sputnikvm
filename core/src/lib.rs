@@ -33,7 +33,7 @@ use primitive_types::U256;
 /// Core execution layer for EVM.
 pub struct Machine<M: VMApi> {
 	/// Program data.
-	data: Rc<ManagedBuffer<M>>,
+	pub data: Rc<ManagedBuffer<M>>,
 	/// Program code.
 	pub code: Rc<ManagedBuffer<M>>,
 	/// Program counter.
@@ -135,7 +135,7 @@ impl<M: VMApi> Machine<M> {
 	/// Loop stepping the machine, until it stops.
 	pub fn run(&mut self) -> Capture<ExitReason, Trap> {
 		loop {
-			match self.step() {
+			match self.step(0, 0) {
 				Ok(()) => (),
 				Err(res) => return res,
 			}
@@ -144,7 +144,7 @@ impl<M: VMApi> Machine<M> {
 
 	#[inline]
 	/// Step the machine, executing one opcode. It then returns.
-	pub fn step(&mut self) -> Result<(), Capture<ExitReason, Trap>> {
+	pub fn step(&mut self, kind: u32, index: u32) -> Result<(), Capture<ExitReason, Trap>> {
 		let position = *self
 			.position
 			.as_ref()
@@ -152,8 +152,15 @@ impl<M: VMApi> Machine<M> {
 
 		let v = self.code.get(position);
 
+		// TODO: remove this
+		if kind == 2 && index == 13 {
+			// let _x = self.data.len();
+			return Err(Capture::Exit(ExitReason::Error(ExitError::OutOfGas)));
+			let _x = 1;
+		}
+
 		match Some(Opcode(v)) {
-			Some(opcode) => match eval(self, opcode, position) {
+			Some(opcode) => match eval(self, opcode, position, kind, index) {
 				Control::Continue(p) => {
 					self.position = Ok(position + p);
 					Ok(())

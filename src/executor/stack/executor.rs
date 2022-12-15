@@ -13,10 +13,7 @@ use elrond_wasm::api::VMApi;
 use eltypes::{ManagedBufferAccess, EH256};
 
 use core::{cmp::min, convert::Infallible};
-use elrond_wasm::{
-	contract_base::ContractBase,
-	types::{ManagedBuffer, ManagedVec},
-};
+use elrond_wasm::types::{ManagedBuffer, ManagedVec};
 use evm_core::{ExitFatal, ExitRevert};
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
@@ -438,8 +435,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 	}
 
 	/// Execute the runtime until it returns.
-	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>) -> ExitReason {
-		let x = runtime.run(self);
+	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>, kind: u32) -> ExitReason {
+		let x = runtime.run(self, kind);
 		match x {
 			Capture::Exit(s) => s,
 			Capture::Trap(_) => unreachable!("Trap is Infallible"),
@@ -595,7 +592,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 				target: address,
 				value,
 			}),
-			data,
+			// TODO: why `clone`???
+			data.clone(),
 			Some(gas_limit),
 			false,
 			false,
@@ -723,7 +721,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		fn l64(gas: u64) -> u64 {
 			gas - gas / 64
 		}
-		let a = init_code.to_vec();
+
 		let address = self.create_address(scheme);
 
 		self.state.metadata_mut().access_address(caller);
@@ -821,7 +819,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			self.config,
 		);
 
-		let reason = self.execute(&mut runtime);
+		let reason = self.execute(&mut runtime, 1);
 		log::debug!(target: "evm", "Create execution using address {}: {:?}", address, reason);
 
 		match reason {
@@ -1012,7 +1010,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 
 		let mut runtime = Runtime::new(Rc::new(code), Rc::new(input), context, self.config);
 
-		let reason = self.execute(&mut runtime);
+		let reason = self.execute(&mut runtime, 2);
 		log::debug!(target: "evm", "Call execution using address {}: {:?}", code_address, reason);
 
 		match reason {
@@ -1251,6 +1249,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		context: &Context,
 		opcode: Opcode,
 		stack: &Stack<M>,
+		kind: u32,
+		index: u32,
 	) -> Result<(), ExitError> {
 		// log::trace!(target: "evm", "Running opcode: {:?}, Pre gas-left: {:?}", opcode, gasometer.gas());
 
