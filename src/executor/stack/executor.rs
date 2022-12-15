@@ -723,7 +723,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		fn l64(gas: u64) -> u64 {
 			gas - gas / 64
 		}
-		let a = init_code.to_vec();
+
 		let address = self.create_address(scheme);
 
 		self.state.metadata_mut().access_address(caller);
