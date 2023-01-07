@@ -6,7 +6,7 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
-use elrond_wasm::{api::VMApi, types::ManagedBuffer};
+use mx_sc::{api::VMApi, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
 /// Basic account information.

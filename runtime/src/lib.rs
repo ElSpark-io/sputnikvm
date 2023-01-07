@@ -27,17 +27,17 @@ mod eval;
 mod handler;
 mod interrupt;
 
-use elrond_wasm::api::VMApi;
-use elrond_wasm::types::ManagedBuffer;
 use eltypes::ManagedBufferAccess;
 pub use evm_core::*;
+use mx_sc::api::VMApi;
+use mx_sc::types::ManagedBuffer;
 
 pub use crate::context::{CallScheme, Context, CreateScheme};
 pub use crate::handler::{Handler, Transfer};
 pub use crate::interrupt::{Resolve, ResolveCall, ResolveCreate};
 
 use alloc::rc::Rc;
-use elrond_wasm::{contract_base::ContractBase, types::ManagedVec};
+use mx_sc::{contract_base::ContractBase, types::ManagedVec};
 
 macro_rules! step {
 	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({

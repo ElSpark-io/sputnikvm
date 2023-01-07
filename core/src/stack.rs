@@ -1,6 +1,6 @@
 use crate::ExitError;
-use elrond_wasm::{api::VMApi, contract_base::ContractBase, types::ManagedVec};
 use eltypes::EH256;
+use mx_sc::{api::VMApi, contract_base::ContractBase, types::ManagedVec};
 
 /// EVM stack.
 #[derive(Clone, Debug)]

@@ -1,5 +1,5 @@
 use crate::{ExitFatal, Handler, Runtime};
-use elrond_wasm::api::VMApi;
+use mx_sc::api::VMApi;
 /// Interrupt resolution.
 pub enum Resolve<'a, 'config, M: VMApi, H: Handler<M>> {
 	/// Create interrupt resolution.

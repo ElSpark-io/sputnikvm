@@ -1,12 +1,12 @@
 use super::Control;
 use crate::{ExitError, ExitFatal, ExitRevert, ExitSucceed, Machine};
 use core::cmp::min;
-use elrond_wasm::{
+use eltypes::{ManagedBufferAccess, ManagedVecforEH256, ToEH256};
+use mx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::{ManagedBufferAccess, ManagedVecforEH256, ToEH256};
 use primitive_types::{H256, U256};
 
 #[inline]

@@ -1,10 +1,10 @@
 use crate::Opcode;
-use elrond_wasm::{
+use eltypes::{ManagedBufferAccess, Resizable};
+use mx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::{ManagedBufferAccess, Resizable};
 
 /// Mapping of valid jump destination from code.
 #[derive(Clone, Debug, Eq, PartialEq)]

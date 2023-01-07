@@ -1,10 +1,10 @@
 use crate::{ExitError, ExitFatal};
 use core::cmp::min;
 use core::ops::{BitAnd, Not};
-use elrond_wasm::api::VMApi;
-use elrond_wasm::types::ManagedBuffer;
-use elrond_wasm::{contract_base::ContractBase, types::ManagedVec};
 use eltypes::ManagedBufferAccess;
+use mx_sc::api::VMApi;
+use mx_sc::types::ManagedBuffer;
+use mx_sc::{contract_base::ContractBase, types::ManagedVec};
 use primitive_types::U256;
 
 /// A sequencial memory. It uses Rust's `Vec` for internal

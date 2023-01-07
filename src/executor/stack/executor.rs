@@ -9,15 +9,15 @@ use alloc::{
 	rc::Rc,
 	vec::Vec,
 };
-use elrond_wasm::api::VMApi;
 use eltypes::{ManagedBufferAccess, EH256};
+use mx_sc::api::VMApi;
 
 use core::{cmp::min, convert::Infallible};
-use elrond_wasm::{
+use evm_core::{ExitFatal, ExitRevert};
+use mx_sc::{
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use evm_core::{ExitFatal, ExitRevert};
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
 

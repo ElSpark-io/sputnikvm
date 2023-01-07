@@ -5,12 +5,12 @@ use crate::{
 };
 
 use core::cmp::min;
-use elrond_wasm::{
+use eltypes::{ManagedBufferAccess, EH256};
+use mx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::{ManagedBufferAccess, EH256};
 use primitive_types::{H256, U256};
 use sha3::{Digest, Keccak256};
 

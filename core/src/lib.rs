@@ -25,9 +25,9 @@ use crate::eval::{eval, Control};
 use crate::utils::*;
 use alloc::rc::Rc;
 use core::ops::Range;
-use elrond_wasm::api::VMApi;
-use elrond_wasm::{contract_base::ContractBase, types::ManagedBuffer};
 use eltypes::ManagedBufferAccess;
+use mx_sc::api::VMApi;
+use mx_sc::{contract_base::ContractBase, types::ManagedBuffer};
 use primitive_types::U256;
 
 /// Core execution layer for EVM.
