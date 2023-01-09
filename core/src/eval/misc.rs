@@ -53,8 +53,7 @@ pub fn calldataload<M: VMApi>(state: &mut Machine<M>) -> Control {
 
 #[inline]
 pub fn calldatasize<M: VMApi>(state: &mut Machine<M>) -> Control {
-	// U256::from(ManagedBuffer::<M>::new().len());
-	let len = U256::from(36);
+	let len = U256::from(state.data.len());
 	push_u256!(state, len);
 	Control::Continue(1)
 }
