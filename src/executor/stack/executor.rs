@@ -9,7 +9,8 @@ use alloc::{
 	rc::Rc,
 	vec::Vec,
 };
-use elrond_wasm::api::VMApi;
+use elrond_wasm::api::{CryptoApiImpl, VMApi};
+use elrond_wasm::types::ManagedType;
 use eltypes::{ManagedBufferAccess, EH256};
 
 use core::{cmp::min, convert::Infallible};
@@ -230,7 +231,9 @@ pub trait StackState<'config, M: VMApi>: Backend<M> {
 	/// can be customized to use a more performant approach that don't need to
 	/// fetch the code.
 	fn code_hash(&self, address: H160) -> H256 {
-		H256::from_slice(Keccak256::digest(&self.code(address).to_boxed_bytes()).as_slice())
+		let ret: ManagedBuffer<M> = ManagedBuffer::new();
+		M::crypto_api_impl().keccak256_managed(ret.get_handle(), self.code(address).get_handle());
+		H256::from_slice(&ret.to_vec())
 	}
 }
 
@@ -506,7 +509,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedBuffer<M>) {
-		let code_hash = H256::from_slice(Keccak256::digest(&init_code.to_vec()).as_slice());
+		let ret: ManagedBuffer<M> = ManagedBuffer::new();
+		M::crypto_api_impl().keccak256_managed(ret.get_handle(), init_code.get_handle());
+		let code_hash = H256::from_slice(&ret.to_vec());
 		event!(TransactCreate2 {
 			caller,
 			value,
@@ -672,8 +677,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 						}
 					}
 				}
-
-				H256::from_slice(Keccak256::digest(&data).as_slice()).into()
+				H256::from_slice(M::crypto_api_impl().keccak256_legacy(&data).as_slice()).into()
 			}
 			CreateScheme::Fixed(naddress) => naddress,
 		}

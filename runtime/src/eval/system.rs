@@ -6,13 +6,12 @@ use crate::{
 
 use core::cmp::min;
 use elrond_wasm::{
-	api::VMApi,
+	api::{CryptoApiImpl, VMApi},
 	contract_base::ContractBase,
-	types::{ManagedBuffer, ManagedVec},
+	types::{ManagedBuffer, ManagedType, ManagedVec},
 };
 use eltypes::{ManagedBufferAccess, EH256};
 use primitive_types::{H256, U256};
-use sha3::{Digest, Keccak256};
 
 pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> {
 	pop_u256!(runtime, from, len);
@@ -27,8 +26,9 @@ pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> 
 		runtime.machine.memory_mut().get(from, len)
 	};
 
-	let ret = Keccak256::digest(&data.to_vec());
-	push!(runtime, EH256::from(H256::from_slice(ret.as_slice())));
+	let ret: ManagedBuffer<M> = ManagedBuffer::new();
+	M::crypto_api_impl().keccak256_managed(ret.get_handle(), data.get_handle());
+	push!(runtime, EH256::from(H256::from_slice(&ret.to_vec())));
 
 	Control::Continue
 }
@@ -367,7 +367,10 @@ pub fn create<'config, H: Handler<M>, M: VMApi>(
 
 	let scheme = if is_create2 {
 		pop!(runtime, salt);
-		let code_hash = H256::from_slice(Keccak256::digest(&code.clone().to_vec()).as_slice());
+		let ret: ManagedBuffer<M> = ManagedBuffer::new();
+
+		M::crypto_api_impl().keccak256_managed(ret.get_handle(), code.get_handle());
+		let code_hash = H256::from_slice(&ret.to_vec());
 		CreateScheme::Create2 {
 			caller: runtime.context.address,
 			salt: salt.to_h256(),
