@@ -577,6 +577,6 @@ pub fn eval<M: VMApi>(state: &mut Machine<M>, opcode: Opcode, position: usize) -
         Opcode::REVERT => eval_revert(state, opcode, position),
         Opcode::INVALID => eval_invalid(state, opcode, position),
 
-		_ => panic!("Opcode doesn't found!"),
+		_ => eval_external(state, opcode, position)
 	}
 }
