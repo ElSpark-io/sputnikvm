@@ -67,7 +67,7 @@ macro_rules! step {
 			},
 		}
 
-		let result = $self.machine.step($kind, $index);
+		let result = $self.machine.step();
 
 		event!(StepResult {
 			result: &result,

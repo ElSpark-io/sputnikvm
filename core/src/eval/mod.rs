@@ -467,8 +467,6 @@ pub fn eval<M: VMApi>(
 	state: &mut Machine<M>,
 	opcode: Opcode,
 	position: usize,
-	kind: u32,
-	index: u32,
 ) -> Control {
 	let TABLE: [fn(state: &mut Machine<M>, opcode: Opcode, position: usize) -> Control; 256] = {
 		let mut table = [eval_external as _; 256];
@@ -586,11 +584,6 @@ pub fn eval<M: VMApi>(
 
 		table
 	};
-
-	// TODO: remove this
-	// if kind == 2 && index == 12 {
-	// 	return Control::Continue(1);
-	// }
 
 	let x = TABLE[opcode.as_usize()](state, opcode, position);
 
