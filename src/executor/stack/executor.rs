@@ -595,11 +595,12 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 
 		match self.call_inner(
 			address,
-			Some(Transfer {
-				source: caller,
-				target: address,
-				value,
-			}),
+			// Some(Transfer {
+			// 	source: caller,
+			// 	target: address,
+			// 	value,
+			// }),
+			None,
 			data,
 			Some(gas_limit),
 			false,
@@ -954,6 +955,8 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		}
 
 		let code = self.code(code_address);
+
+		let code_len: usize = self.code(code_address).len();
 
 		self.enter_substate(gas_limit, is_static);
 		self.state.touch(context.address);
