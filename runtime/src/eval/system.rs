@@ -5,12 +5,12 @@ use crate::{
 };
 
 use core::cmp::min;
-use elrond_wasm::{
+use eltypes::{ManagedBufferAccess, EH256};
+use mx_sc::{
 	api::{CryptoApiImpl, VMApi},
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedType, ManagedVec},
 };
-use eltypes::{ManagedBufferAccess, EH256};
 use primitive_types::{H256, U256};
 
 pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> {

@@ -27,10 +27,10 @@ mod eval;
 mod handler;
 mod interrupt;
 
-use elrond_wasm::api::VMApi;
-use elrond_wasm::types::ManagedBuffer;
 use eltypes::ManagedBufferAccess;
 pub use evm_core::*;
+use mx_sc::api::VMApi;
+use mx_sc::types::ManagedBuffer;
 
 pub use crate::context::{CallScheme, Context, CreateScheme};
 pub use crate::handler::{Handler, Transfer};

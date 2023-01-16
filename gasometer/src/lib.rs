@@ -29,10 +29,10 @@ mod utils;
 
 use alloc::vec::Vec;
 use core::cmp::max;
-use elrond_wasm::{api::VMApi, types::ManagedBuffer};
 use eltypes::ManagedBufferAccess;
 use evm_core::{ExitError, Opcode, Stack};
 use evm_runtime::{Config, Handler};
+use mx_sc::{api::VMApi, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
 macro_rules! try_or_fail {

@@ -7,12 +7,12 @@ use alloc::{
 	vec::Vec,
 };
 use core::mem;
-use elrond_wasm::api::VMApi;
-use elrond_wasm::{
+use eltypes::EH256;
+use mx_sc::api::VMApi;
+use mx_sc::{
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::EH256;
 use primitive_types::{H160, H256, U256};
 
 #[derive(Clone, Debug)]

@@ -1,11 +1,11 @@
 use super::{Apply, ApplyBackend, Backend, Basic, Log};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use elrond_wasm::{
+use eltypes::EH256;
+use mx_sc::{
 	api::VMApi,
 	types::{ManagedBuffer, ManagedVec},
 };
-use eltypes::EH256;
 use primitive_types::{H160, H256, U256};
 
 /// Vicinity value of a memory backend.

@@ -2,10 +2,10 @@
 
 use core::cmp::Ordering;
 
-use elrond_wasm::api::{InvalidSliceError, VMApi};
+use mx_sc::api::{InvalidSliceError, VMApi};
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+mx_sc::imports!();
+mx_sc::derive_imports!();
 
 #[derive(
 	ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Default,
