@@ -14,18 +14,18 @@ pub use evm_runtime::*;
 #[cfg(feature = "tracing")]
 pub mod tracing;
 
-#[cfg(feature = "tracing")]
-macro_rules! event {
-	($x:expr) => {
-		use crate::tracing::Event::*;
-		crate::tracing::with(|listener| listener.event($x));
-	};
-}
+// #[cfg(feature = "tracing")]
+// macro_rules! event {
+// 	($x:expr) => {
+// 		use crate::tracing::Event::*;
+// 		crate::tracing::with(|listener| listener.event($x));
+// 	};
+// }
 
-#[cfg(not(feature = "tracing"))]
-macro_rules! event {
-	($x:expr) => {};
-}
+// #[cfg(not(feature = "tracing"))]
+// macro_rules! event {
+// 	($x:expr) => {};
+// }
 
 pub mod backend;
 pub mod executor;

@@ -9,25 +9,24 @@ extern crate alloc;
 #[cfg(feature = "tracing")]
 pub mod tracing;
 
-#[cfg(feature = "tracing")]
-macro_rules! event {
-	($x:expr) => {
-		use crate::tracing::Event::*;
-		crate::tracing::with(|listener| listener.event($x));
-	};
-}
+// #[cfg(feature = "tracing")]
+// macro_rules! event {
+// 	($x:expr) => {
+// 		use crate::tracing::Event::*;
+// 		crate::tracing::with(|listener| listener.event($x));
+// 	};
+// }
 
-#[cfg(not(feature = "tracing"))]
-macro_rules! event {
-	($x:expr) => {};
-}
+// #[cfg(not(feature = "tracing"))]
+// macro_rules! event {
+// 	($x:expr) => {};
+// }
 
 mod context;
 mod eval;
 mod handler;
 mod interrupt;
 
-use eltypes::ManagedBufferAccess;
 pub use evm_core::*;
 use mx_sc::api::VMApi;
 use mx_sc::types::ManagedBuffer;
@@ -40,13 +39,13 @@ use alloc::rc::Rc;
 macro_rules! step {
 	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({
 		if let Some((opcode, stack)) = $self.machine.inspect() {
-			event!(Step {
-				context: &$self.context,
-				opcode,
-				position: $self.machine.position(),
-				stack,
-				memory: $self.machine.memory()
-			});
+			// event!(Step {
+			// 	context: &$self.context,
+			// 	opcode,
+			// 	position: $self.machine.position(),
+			// 	stack,
+			// 	memory: $self.machine.memory()
+			// });
 
 			match $handler.pre_validate(&$self.context, opcode, stack) {
 				Ok(()) => (),
@@ -67,10 +66,10 @@ macro_rules! step {
 
 		let result = $self.machine.step();
 
-		event!(StepResult {
-			result: &result,
-			return_value: &$self.machine.return_value(),
-		});
+		// event!(StepResult {
+		// 	result: &result,
+		// 	return_value: &$self.machine.return_value(),
+		// });
 
 		match result {
 			Ok(()) => $($ok)?(()),
