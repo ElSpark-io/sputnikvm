@@ -28,7 +28,7 @@ pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> 
 
 	let ret: ManagedBuffer<M> = ManagedBuffer::new();
 	M::crypto_api_impl().keccak256_managed(ret.get_handle(), data.get_handle());
-	push!(runtime, EH256::from(H256::from_slice(&ret.to_vec())));
+	push!(runtime, EH256::from(H256::from_slice(&ret.to_boxed_bytes().as_slice())));
 
 	Control::Continue
 }

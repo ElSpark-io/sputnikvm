@@ -20,6 +20,7 @@ use mx_sc::{
 };
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
+// use mx_sc_debug::testing_framework::vm::get_vm;
 
 macro_rules! emit_exit {
 	($reason:expr) => {{
@@ -232,7 +233,7 @@ pub trait StackState<'config, M: VMApi>: Backend<M> {
 	fn code_hash(&self, address: H160) -> H256 {
 		let ret: ManagedBuffer<M> = ManagedBuffer::new();
 		M::crypto_api_impl().keccak256_managed(ret.get_handle(), self.code(address).get_handle());
-		H256::from_slice(&ret.to_vec())
+		H256::from_slice(ret.to_boxed_bytes().as_slice())
 	}
 }
 
@@ -510,7 +511,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 	) -> (ExitReason, ManagedBuffer<M>) {
 		let ret: ManagedBuffer<M> = ManagedBuffer::new();
 		M::crypto_api_impl().keccak256_managed(ret.get_handle(), init_code.get_handle());
-		let code_hash = H256::from_slice(&ret.to_vec());
+		let code_hash = H256::from_slice(ret.to_boxed_bytes().as_slice());
 		// event!(TransactCreate2 {
 		// 	caller,
 		// 	value,
@@ -657,11 +658,15 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 					len += 1;
 				}
 
-				let mut data = Vec::<u8>::with_capacity(len as usize);
-
+				// let mut data = Vec::<u8>::with_capacity(len as usize);
+				let mut data: ManagedBuffer<M> = ManagedBuffer::new();
 				data.push(192 + len - 1);
 				data.push(148);
-				data.append(&mut caller.0.to_vec());
+				data.append_bytes(&caller.0);
+
+				// data.push(192 + len - 1);
+				// data.push(148);
+				// data.append(&mut caller.0.to_vec());
 
 				if nonce < U256::from(128) {
 					data.push(nonce.byte(0));
@@ -677,7 +682,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 						}
 					}
 				}
-				H256::from_slice(M::crypto_api_impl().keccak256_legacy(&data).as_slice()).into()
+				let dest: ManagedBuffer<M> = ManagedBuffer::new();
+				M::crypto_api_impl().keccak256_managed(dest.get_handle(), data.get_handle());
+				H256::from_slice(dest.to_boxed_bytes().as_slice()).into()
 			}
 			CreateScheme::Fixed(naddress) => naddress,
 		}
@@ -978,41 +985,41 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		// At this point, the state has been modified in enter_substate to
 		// reflect both the is_static parameter of this call and the is_static
 		// of the caller context.
-		let precompile_is_static = self.state.metadata().is_static();
-		if let Some(result) = self.precompile_set.execute(&mut StackExecutorHandle {
-			executor: self,
-			code_address,
-			input: &input,
-			gas_limit: Some(gas_limit),
-			context: &context,
-			is_static: precompile_is_static,
-		}) {
-			return match result {
-				Ok(PrecompileOutput {
-					exit_status,
-					output,
-				}) => {
-					let _ = self.exit_substate(StackExitKind::Succeeded);
-					Capture::Exit((ExitReason::Succeed(exit_status), output))
-				}
-				Err(PrecompileFailure::Error { exit_status }) => {
-					let _ = self.exit_substate(StackExitKind::Failed);
-					Capture::Exit((ExitReason::Error(exit_status), ManagedBuffer::new()))
-				}
-				Err(PrecompileFailure::Revert {
-					exit_status,
-					output,
-				}) => {
-					let _ = self.exit_substate(StackExitKind::Reverted);
-					Capture::Exit((ExitReason::Revert(exit_status), output))
-				}
-				Err(PrecompileFailure::Fatal { exit_status }) => {
-					self.state.metadata_mut().gasometer.fail();
-					let _ = self.exit_substate(StackExitKind::Failed);
-					Capture::Exit((ExitReason::Fatal(exit_status), ManagedBuffer::new()))
-				}
-			};
-		}
+		// let precompile_is_static = self.state.metadata().is_static();
+		// if let Some(result) = self.precompile_set.execute(&mut StackExecutorHandle {
+		// 	executor: self,
+		// 	code_address,
+		// 	input: &input,
+		// 	gas_limit: Some(gas_limit),
+		// 	context: &context,
+		// 	is_static: precompile_is_static,
+		// }) {
+		// 	return match result {
+		// 		Ok(PrecompileOutput {
+		// 			exit_status,
+		// 			output,
+		// 		}) => {
+		// 			let _ = self.exit_substate(StackExitKind::Succeeded);
+		// 			Capture::Exit((ExitReason::Succeed(exit_status), output))
+		// 		}
+		// 		Err(PrecompileFailure::Error { exit_status }) => {
+		// 			let _ = self.exit_substate(StackExitKind::Failed);
+		// 			Capture::Exit((ExitReason::Error(exit_status), ManagedBuffer::new()))
+		// 		}
+		// 		Err(PrecompileFailure::Revert {
+		// 			exit_status,
+		// 			output,
+		// 		}) => {
+		// 			let _ = self.exit_substate(StackExitKind::Reverted);
+		// 			Capture::Exit((ExitReason::Revert(exit_status), output))
+		// 		}
+		// 		Err(PrecompileFailure::Fatal { exit_status }) => {
+		// 			self.state.metadata_mut().gasometer.fail();
+		// 			let _ = self.exit_substate(StackExitKind::Failed);
+		// 			Capture::Exit((ExitReason::Fatal(exit_status), ManagedBuffer::new()))
+		// 		}
+		// 	};
+		// }
 
 		let mut runtime = Runtime::new(Rc::new(code), Rc::new(input), context, self.config);
 		let reason = self.execute(&mut runtime);
