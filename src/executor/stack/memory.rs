@@ -8,9 +8,8 @@ use alloc::{
 };
 use core::mem;
 use eltypes::EH256;
-use mx_sc::api::VMApi;
-use mx_sc::{
-	contract_base::ContractBase,
+use multiversx_sc::api::VMApi;
+use multiversx_sc::{
 	types::{ManagedBuffer, ManagedVec},
 };
 use primitive_types::{H160, H256, U256};
@@ -537,7 +536,7 @@ impl<'backend, 'config, B: Backend<M>, M: VMApi> StackState<'config, M>
 		self.substate.reset_storage(address, self.backend);
 	}
 
-	fn log(&mut self, address: H160, topics: ManagedVec<M, EH256>, data: ManagedBuffer<M>) {
+	fn log(&mut self, _address: H160, _topics: ManagedVec<M, EH256>, _data: ManagedBuffer<M>) {
 		// 	self.substate.log(address, topics, data);
 	}
 

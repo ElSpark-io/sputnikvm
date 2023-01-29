@@ -12,31 +12,31 @@ use alloc::{
 use core::{cmp::min, convert::Infallible};
 use eltypes::{ManagedBufferAccess, EH256};
 use evm_core::{ExitFatal, ExitRevert};
-use mx_sc::{
+use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
-	contract_base::ContractBase,
 	types::ManagedType,
 	types::{ManagedBuffer, ManagedVec},
 };
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
+// use multiversx_sc_debug::testing_framework::vm::get_vm;
 
 macro_rules! emit_exit {
 	($reason:expr) => {{
 		let reason = $reason;
-		event!(Exit {
-			reason: &reason,
-			return_value: &Vec::new(),
-		});
+		// event!(Exit {
+		// 	reason: &reason,
+		// 	return_value: &Vec::new(),
+		// });
 		reason
 	}};
 	($reason:expr, $return_value:expr) => {{
 		let reason = $reason;
 		let return_value = $return_value;
-		event!(Exit {
-			reason: &reason,
-			return_value: &return_value,
-		});
+		// event!(Exit {
+		// 	reason: &reason,
+		// 	return_value: &return_value,
+		// });
 		(reason, return_value)
 	}};
 }
@@ -222,7 +222,7 @@ pub trait StackState<'config, M: VMApi>: Backend<M> {
 	/// can be customized to use a more performant approach that don't need to
 	/// fetch the code.
 	fn code_size(&self, address: H160) -> U256 {
-		U256::from(self.code(address).len())
+		self.code(address).len().into()
 	}
 
 	/// Fetch the code hash of an address.
@@ -232,7 +232,7 @@ pub trait StackState<'config, M: VMApi>: Backend<M> {
 	fn code_hash(&self, address: H160) -> H256 {
 		let ret: ManagedBuffer<M> = ManagedBuffer::new();
 		M::crypto_api_impl().keccak256_managed(ret.get_handle(), self.code(address).get_handle());
-		H256::from_slice(&ret.to_vec())
+		H256::from_slice(ret.to_boxed_bytes().as_slice())
 	}
 }
 
@@ -473,13 +473,13 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedBuffer<M>) {
-		event!(TransactCreate {
-			caller,
-			value,
-			init_code: &init_code,
-			gas_limit,
-			address: self.create_address(CreateScheme::Legacy { caller }),
-		});
+		// event!(TransactCreate {
+		// 	caller,
+		// 	value,
+		// 	init_code: &init_code,
+		// 	gas_limit,
+		// 	address: self.create_address(CreateScheme::Legacy { caller }),
+		// });
 
 		if let Err(e) = self.record_create_transaction_cost(&init_code, &access_list) {
 			return emit_exit!(e.into(), ManagedBuffer::new());
@@ -511,19 +511,19 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 	) -> (ExitReason, ManagedBuffer<M>) {
 		let ret: ManagedBuffer<M> = ManagedBuffer::new();
 		M::crypto_api_impl().keccak256_managed(ret.get_handle(), init_code.get_handle());
-		let code_hash = H256::from_slice(&ret.to_vec());
-		event!(TransactCreate2 {
-			caller,
-			value,
-			init_code: &init_code,
-			salt,
-			gas_limit,
-			address: self.create_address(CreateScheme::Create2 {
-				caller,
-				code_hash,
-				salt,
-			}),
-		});
+		let code_hash = H256::from_slice(ret.to_boxed_bytes().as_slice());
+		// event!(TransactCreate2 {
+		// 	caller,
+		// 	value,
+		// 	init_code: &init_code,
+		// 	salt,
+		// 	gas_limit,
+		// 	address: self.create_address(CreateScheme::Create2 {
+		// 		caller,
+		// 		code_hash,
+		// 		salt,
+		// 	}),
+		// });
 
 		if let Err(e) = self.record_create_transaction_cost(&init_code, &access_list) {
 			return emit_exit!(e.into(), ManagedBuffer::new());
@@ -562,13 +562,13 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
 	) -> (ExitReason, ManagedBuffer<M>) {
-		event!(TransactCall {
-			caller,
-			address,
-			value,
-			data: &data,
-			gas_limit,
-		});
+		// event!(TransactCall {
+		// 	caller,
+		// 	address,
+		// 	value,
+		// 	data: &data,
+		// 	gas_limit,
+		// });
 
 		let transaction_cost = gasometer::call_transaction_cost(&data, &access_list);
 		let gasometer = &mut self.state.metadata_mut().gasometer;
@@ -578,12 +578,12 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		}
 
 		// Initialize initial addresses for EIP-2929
-		if self.config.increase_state_access_gas {
-			let addresses = core::iter::once(caller).chain(core::iter::once(address));
-			self.state.metadata_mut().access_addresses(addresses);
-
-			self.initialize_with_access_list(access_list);
-		}
+		// if self.config.increase_state_access_gas {
+		// 	let addresses = core::iter::once(caller).chain(core::iter::once(address));
+		// 	self.state.metadata_mut().access_addresses(addresses);
+		//
+		// 	self.initialize_with_access_list(access_list);
+		// }
 
 		self.state.inc_nonce(caller);
 
@@ -659,7 +659,6 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 				}
 
 				let mut data = Vec::<u8>::with_capacity(len as usize);
-
 				data.push(192 + len - 1);
 				data.push(148);
 				data.append(&mut caller.0.to_vec());
@@ -678,7 +677,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 						}
 					}
 				}
-				H256::from_slice(M::crypto_api_impl().keccak256_legacy(&data).as_slice()).into()
+
+				let result = M::crypto_api_impl().keccak256_legacy(&data);
+				H256::from_slice(&result).into()
 			}
 			CreateScheme::Fixed(naddress) => naddress,
 		}
@@ -734,14 +735,14 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		self.state.metadata_mut().access_address(caller);
 		self.state.metadata_mut().access_address(address);
 
-		event!(Create {
-			caller,
-			address,
-			scheme,
-			value,
-			init_code: &init_code,
-			target_gas
-		});
+		// event!(Create {
+		// 	caller,
+		// 	address,
+		// 	scheme,
+		// 	value,
+		// 	init_code: &init_code,
+		// 	target_gas
+		// });
 
 		if let Some(depth) = self.state.metadata().depth {
 			if depth > self.config.call_stack_limit {
@@ -776,7 +777,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		self.enter_substate(gas_limit, false);
 
 		{
-			if self.code_size(address) != U256::zero() {
+			if !self.code_size(address).is_zero() {
 				let _ = self.exit_substate(StackExitKind::Failed);
 				return Capture::Exit((
 					ExitError::CreateCollision.into(),
@@ -889,11 +890,6 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 				Capture::Exit((ExitReason::Fatal(e), None, ManagedBuffer::new()))
 			}
 		}
-		// Capture::Exit((
-		// 	ExitReason::Succeed(ExitSucceed::Returned),
-		// 	None,
-		// 	ManagedBuffer::new(),
-		// ))
 	}
 
 	#[allow(clippy::too_many_arguments)]
@@ -921,14 +917,14 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			gas - gas / 64
 		}
 
-		event!(Call {
-			code_address,
-			transfer: &transfer,
-			input: &input,
-			target_gas,
-			is_static,
-			context: &context,
-		});
+		// event!(Call {
+		// 	code_address,
+		// 	transfer: &transfer,
+		// 	input: &input,
+		// 	target_gas,
+		// 	is_static,
+		// 	context: &context,
+		// });
 
 		let after_gas = if take_l64 && self.config.call_l64_after_gas {
 			if self.config.estimate {
@@ -956,8 +952,6 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 
 		let code = self.code(code_address);
 
-		let code_len: usize = self.code(code_address).len();
-
 		self.enter_substate(gas_limit, is_static);
 		self.state.touch(context.address);
 
@@ -981,49 +975,52 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		// At this point, the state has been modified in enter_substate to
 		// reflect both the is_static parameter of this call and the is_static
 		// of the caller context.
-		let precompile_is_static = self.state.metadata().is_static();
-		if let Some(result) = self.precompile_set.execute(&mut StackExecutorHandle {
-			executor: self,
-			code_address,
-			input: &input,
-			gas_limit: Some(gas_limit),
-			context: &context,
-			is_static: precompile_is_static,
-		}) {
-			return match result {
-				Ok(PrecompileOutput {
-					exit_status,
-					output,
-				}) => {
-					let _ = self.exit_substate(StackExitKind::Succeeded);
-					Capture::Exit((ExitReason::Succeed(exit_status), output))
-				}
-				Err(PrecompileFailure::Error { exit_status }) => {
-					let _ = self.exit_substate(StackExitKind::Failed);
-					Capture::Exit((ExitReason::Error(exit_status), ManagedBuffer::new()))
-				}
-				Err(PrecompileFailure::Revert {
-					exit_status,
-					output,
-				}) => {
-					let _ = self.exit_substate(StackExitKind::Reverted);
-					Capture::Exit((ExitReason::Revert(exit_status), output))
-				}
-				Err(PrecompileFailure::Fatal { exit_status }) => {
-					self.state.metadata_mut().gasometer.fail();
-					let _ = self.exit_substate(StackExitKind::Failed);
-					Capture::Exit((ExitReason::Fatal(exit_status), ManagedBuffer::new()))
-				}
-			};
-		}
+		// let precompile_is_static = self.state.metadata().is_static();
+		// if let Some(result) = self.precompile_set.execute(&mut StackExecutorHandle {
+		// 	executor: self,
+		// 	code_address,
+		// 	input: &input,
+		// 	gas_limit: Some(gas_limit),
+		// 	context: &context,
+		// 	is_static: precompile_is_static,
+		// }) {
+		// 	return match result {
+		// 		Ok(PrecompileOutput {
+		// 			exit_status,
+		// 			output,
+		// 		}) => {
+		// 			let _ = self.exit_substate(StackExitKind::Succeeded);
+		// 			Capture::Exit((ExitReason::Succeed(exit_status), output))
+		// 		}
+		// 		Err(PrecompileFailure::Error { exit_status }) => {
+		// 			let _ = self.exit_substate(StackExitKind::Failed);
+		// 			Capture::Exit((ExitReason::Error(exit_status), ManagedBuffer::new()))
+		// 		}
+		// 		Err(PrecompileFailure::Revert {
+		// 			exit_status,
+		// 			output,
+		// 		}) => {
+		// 			let _ = self.exit_substate(StackExitKind::Reverted);
+		// 			Capture::Exit((ExitReason::Revert(exit_status), output))
+		// 		}
+		// 		Err(PrecompileFailure::Fatal { exit_status }) => {
+		// 			self.state.metadata_mut().gasometer.fail();
+		// 			let _ = self.exit_substate(StackExitKind::Failed);
+		// 			Capture::Exit((ExitReason::Fatal(exit_status), ManagedBuffer::new()))
+		// 		}
+		// 	};
+		// }
 
         let tmp = input.len();
         
 		let mut runtime = Runtime::new(Rc::new(code), Rc::new(input), context, self.config);
-
-        // Error here - already fixed
 		let reason = self.execute(&mut runtime);
-		log::debug!(target: "evm", "Call execution using address {}: {:?}", code_address, reason);
+		// log::debug!(target: "evm", "Call execution using address {}: {:?}", code_address, reason);
+
+		// Capture::Exit((
+		// 	ExitReason::Succeed(ExitSucceed::Returned),
+		// 	ManagedBuffer::new(),
+		// ))
 
 		match reason {
 			ExitReason::Succeed(s) => {
@@ -1158,11 +1155,11 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 	fn mark_delete(&mut self, address: H160, target: H160) -> Result<(), ExitError> {
 		let balance = self.balance(address);
 
-		event!(Suicide {
-			target,
-			address,
-			balance,
-		});
+		// event!(Suicide {
+		// 	target,
+		// 	address,
+		// 	balance,
+		// });
 
 		self.state.transfer(Transfer {
 			source: address,
@@ -1345,14 +1342,14 @@ impl<'inner, 'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<
 			return (ExitReason::Error(error), ManagedBuffer::new());
 		}
 
-		event!(PrecompileSubcall {
-			code_address,
-			transfer: &transfer,
-			input: &input,
-			target_gas: gas_limit,
-			is_static,
-			context
-		});
+		// event!(PrecompileSubcall {
+		// 	code_address,
+		// 	transfer: &transfer,
+		// 	input: &input,
+		// 	target_gas: gas_limit,
+		// 	is_static,
+		// 	context
+		// });
 
 		// Perform the subcall
 		match Handler::call(

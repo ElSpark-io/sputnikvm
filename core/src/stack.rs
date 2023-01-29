@@ -1,6 +1,6 @@
 use crate::ExitError;
 use eltypes::EH256;
-use mx_sc::{api::VMApi, contract_base::ContractBase, types::ManagedVec};
+use multiversx_sc::{api::VMApi, contract_base::ContractBase, types::ManagedVec};
 
 /// EVM stack.
 #[derive(Clone, Debug)]

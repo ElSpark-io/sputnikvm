@@ -3,7 +3,7 @@ mod macros;
 mod system;
 
 use crate::{CallScheme, ExitReason, Handler, Opcode, Runtime};
-use mx_sc::api::VMApi;
+use multiversx_sc::api::VMApi;
 
 pub enum Control<M: VMApi, H: Handler<M>> {
 	Continue,

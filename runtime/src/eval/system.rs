@@ -6,7 +6,7 @@ use crate::{
 
 use core::cmp::min;
 use eltypes::{ManagedBufferAccess, EH256};
-use mx_sc::{
+use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedType, ManagedVec},
@@ -28,7 +28,7 @@ pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> 
 
 	let ret: ManagedBuffer<M> = ManagedBuffer::new();
 	M::crypto_api_impl().keccak256_managed(ret.get_handle(), data.get_handle());
-	push!(runtime, EH256::from(H256::from_slice(&ret.to_vec())));
+	push!(runtime, EH256::from(H256::from_slice(&ret.to_boxed_bytes().as_slice())));
 
 	Control::Continue
 }
@@ -263,11 +263,11 @@ pub fn sload<'config, H: Handler<M>, M: VMApi>(
 	let value = handler.storage(runtime.context.address, index);
 	push!(runtime, EH256::from(value));
 
-	event!(SLoad {
-		address: runtime.context.address,
-		index,
-		value
-	});
+	// event!(SLoad {
+	// 	address: runtime.context.address,
+	// 	index,
+	// 	value
+	// });
 
 	Control::Continue
 }
@@ -278,11 +278,11 @@ pub fn sstore<'config, H: Handler<M>, M: VMApi>(
 ) -> Control<M, H> {
 	pop!(runtime, index, value);
 
-	event!(SStore {
-		address: runtime.context.address,
-		index,
-		value
-	});
+	// event!(SStore {
+	// 	address: runtime.context.address,
+	// 	index,
+	// 	value
+	// });
 
 	match handler.set_storage(runtime.context.address, index, value) {
 		Ok(()) => Control::Continue,

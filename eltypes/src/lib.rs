@@ -2,10 +2,12 @@
 
 use core::cmp::Ordering;
 
-use mx_sc::api::{InvalidSliceError, VMApi};
+use multiversx_sc::api::{InvalidSliceError, VMApi};
+use primitive_types::H256;
+use multiversx_sc::types::heap::Vec;
 
-mx_sc::imports!();
-mx_sc::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(
 	ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Default,
@@ -132,7 +134,6 @@ pub trait ManagedBufferAccess<M: VMApi> {
 	fn try_get(&self, index: usize) -> Option<u8>;
 	fn set(&mut self, index: usize, data: u8) -> Result<(), InvalidSliceError>;
 	fn resize(&mut self, size: usize, value: u8);
-	// fn as_bytes(&self) -> &[u8];
 	fn to_vec(&self) -> Vec<u8>;
 	fn iter(&self) -> ManagedBufferRefIterator<M>;
 }
@@ -180,23 +181,9 @@ impl<M: VMApi> ManagedBufferAccess<M> for ManagedBuffer<M> {
 		}
 	}
 
-	// fn as_bytes(&self) -> &[u8] {
-	// 	let mut data = Vec::<u8>::new();
-	// 	for i in 0..self.len() {
-	// 		let item = self.try_get(i).unwrap();
-	// 		data.push(item);
-	// 	}
-	// 	&data
-	// }
-
 	// TODO: This needs to be optimized for sure!
 	fn to_vec(&self) -> Vec<u8> {
-		let mut data = Vec::<u8>::new();
-		for i in 0..self.len() {
-			let item = self.try_get(i).unwrap();
-			data.push(item);
-		}
-		data
+		self.to_boxed_bytes().into_vec()
 	}
 
 	fn iter(&self) -> ManagedBufferRefIterator<M> {

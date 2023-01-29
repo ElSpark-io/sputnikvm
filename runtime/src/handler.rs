@@ -1,6 +1,6 @@
 use crate::{Capture, Context, CreateScheme, ExitError, ExitReason, Machine, Opcode, Stack};
 use eltypes::EH256;
-use mx_sc::{
+use multiversx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedVec},
