@@ -20,7 +20,7 @@ use mx_sc::{
 };
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
-// use mx_sc_debug::testing_framework::vm::get_vm;
+use mx_sc_debug::testing_framework::vm::get_vm;
 
 macro_rules! emit_exit {
 	($reason:expr) => {{
@@ -223,7 +223,7 @@ pub trait StackState<'config, M: VMApi>: Backend<M> {
 	/// can be customized to use a more performant approach that don't need to
 	/// fetch the code.
 	fn code_size(&self, address: H160) -> U256 {
-		U256::from(self.code(address).len())
+		self.code(address).len().into()
 	}
 
 	/// Fetch the code hash of an address.
@@ -658,15 +658,10 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 					len += 1;
 				}
 
-				// let mut data = Vec::<u8>::with_capacity(len as usize);
-				let mut data: ManagedBuffer<M> = ManagedBuffer::new();
+				let mut data = Vec::<u8>::with_capacity(len as usize);
 				data.push(192 + len - 1);
 				data.push(148);
-				data.append_bytes(&caller.0);
-
-				// data.push(192 + len - 1);
-				// data.push(148);
-				// data.append(&mut caller.0.to_vec());
+				data.append(&mut caller.0.to_vec());
 
 				if nonce < U256::from(128) {
 					data.push(nonce.byte(0));
@@ -682,9 +677,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 						}
 					}
 				}
-				let dest: ManagedBuffer<M> = ManagedBuffer::new();
-				M::crypto_api_impl().keccak256_managed(dest.get_handle(), data.get_handle());
-				H256::from_slice(dest.to_boxed_bytes().as_slice()).into()
+		
+				let result = M::crypto_api_impl().keccak256_legacy(&data);
+				H256::from_slice(&result).into()
 			}
 			CreateScheme::Fixed(naddress) => naddress,
 		}
@@ -782,7 +777,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		self.enter_substate(gas_limit, false);
 
 		{
-			if self.code_size(address) != U256::zero() {
+			if !self.code_size(address).is_zero() {
 				let _ = self.exit_substate(StackExitKind::Failed);
 				return Capture::Exit((
 					ExitError::CreateCollision.into(),

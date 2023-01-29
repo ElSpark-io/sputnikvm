@@ -298,7 +298,12 @@ pub fn create_transaction_cost<M: VMApi>(
 	data: &ManagedBuffer<M>,
 	access_list: &[(H160, Vec<H256>)],
 ) -> TransactionCost {
-	let zero_data_len = data.iter().filter(|v| *v == 0).count();
+	let mut zero_data_len = 0;
+	for i in 0..data.len() {
+		if i == 0 {
+			zero_data_len += 1;
+		}
+	}
 	let non_zero_data_len = data.len() - zero_data_len;
 	let (access_list_address_len, access_list_storage_len) = count_access_list(access_list);
 
