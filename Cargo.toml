@@ -25,13 +25,14 @@ serde = { version = "1.0.147", default-features = false, features = ["derive"], 
 evm-core = { version = "0.37.0", path = "core", default-features = false }
 evm-gasometer = { version = "0.37.0", path = "gasometer", default-features = false }
 evm-runtime = { version = "0.37.0", path = "runtime", default-features = false }
-mx-sc = { path= "../elrond-wasm-rs/framework/base", version = "0.38.0", features = ["alloc"] }
 eltypes = { version = "0.1.0", path = "eltypes", default-features = false }
 
+[dependencies.multiversx-sc]
+version = "0.39.5"
 
-[dependencies.mx-sc-debug]
-version = "0.38.0"
-path= "../elrond-wasm-rs/framework/debug"
+# [dependencies.mx-sc-debug]
+# version = "0.38.0"
+# path= "../elrond-wasm-rs/framework/debug"
 
 [dev-dependencies]
 criterion = "0.4.0"

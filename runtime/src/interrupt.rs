@@ -1,5 +1,5 @@
 use crate::{ExitFatal, Handler, Runtime};
-use mx_sc::api::VMApi;
+use multiversx_sc::api::VMApi;
 /// Interrupt resolution.
 pub enum Resolve<'a, 'config, M: VMApi, H: Handler<M>> {
 	/// Create interrupt resolution.

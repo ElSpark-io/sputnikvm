@@ -12,15 +12,14 @@ use alloc::{
 use core::{cmp::min, convert::Infallible};
 use eltypes::{ManagedBufferAccess, EH256};
 use evm_core::{ExitFatal, ExitRevert};
-use mx_sc::{
+use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
-	contract_base::ContractBase,
 	types::ManagedType,
 	types::{ManagedBuffer, ManagedVec},
 };
 use primitive_types::{H160, H256, U256};
 use sha3::{Digest, Keccak256};
-use mx_sc_debug::testing_framework::vm::get_vm;
+// use multiversx_sc_debug::testing_framework::vm::get_vm;
 
 macro_rules! emit_exit {
 	($reason:expr) => {{
@@ -677,7 +676,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 						}
 					}
 				}
-		
+
 				let result = M::crypto_api_impl().keccak256_legacy(&data);
 				H256::from_slice(&result).into()
 			}
@@ -890,11 +889,6 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 				Capture::Exit((ExitReason::Fatal(e), None, ManagedBuffer::new()))
 			}
 		}
-		// Capture::Exit((
-		// 	ExitReason::Succeed(ExitSucceed::Returned),
-		// 	None,
-		// 	ManagedBuffer::new(),
-		// ))
 	}
 
 	#[allow(clippy::too_many_arguments)]

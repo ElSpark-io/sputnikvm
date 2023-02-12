@@ -2,7 +2,7 @@ use super::{Apply, ApplyBackend, Backend, Basic, Log};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use eltypes::EH256;
-use mx_sc::{
+use multiversx_sc::{
 	api::VMApi,
 	types::{ManagedBuffer, ManagedVec},
 };
@@ -174,7 +174,7 @@ impl<'vicinity, M: VMApi> Backend<M> for MemoryBackend<'vicinity, M> {
 }
 
 impl<'vicinity, M: VMApi> ApplyBackend<M> for MemoryBackend<'vicinity, M> {
-	fn apply<A, I, L>(&mut self, values: A, logs: L, delete_empty: bool)
+	fn apply<A, I, L>(&mut self, values: A, _logs: L, delete_empty: bool)
 	where
 		A: IntoIterator<Item = Apply<I, M>>,
 		I: IntoIterator<Item = (H256, H256)>,

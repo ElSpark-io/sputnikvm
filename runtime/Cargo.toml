@@ -15,8 +15,10 @@ primitive-types = { version = "0.12", default-features = false }
 sha3 = { version = "0.10", default-features = false }
 eltypes = { version = "0.1.0", path = "../eltypes", default-features = false }
 
-mx-sc = { path= "../../elrond-wasm-rs/framework/base", version = "0.38.0", features = ["alloc"] }
 evm-core = { version = "0.37", path = "../core", default-features = false }
+
+[dependencies.multiversx-sc]
+version = "0.39.5"
 
 [features]
 default = ["std"]

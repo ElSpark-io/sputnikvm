@@ -6,7 +6,7 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
-use mx_sc::{api::VMApi, types::ManagedBuffer};
+use multiversx_sc::{api::VMApi, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
 /// Basic account information.

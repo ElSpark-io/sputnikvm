@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 use core::ops::{Div, Rem};
-use mx_sc::contract_base::ContractBase;
-use mx_sc::types::{ManagedVec, ManagedVecItem};
+use multiversx_sc::contract_base::ContractBase;
+use multiversx_sc::types::{ManagedVec, ManagedVecItem};
 use primitive_types::U256;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]

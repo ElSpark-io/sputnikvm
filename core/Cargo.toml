@@ -14,7 +14,9 @@ scale-codec = { package = "parity-scale-codec", version = "3.2", default-feature
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 eltypes = { version = "0.1.0", path = "../eltypes", default-features = false }
-mx-sc = { path= "../../elrond-wasm-rs/framework/base", version = "0.38.0", features = ["alloc"] }
+
+[dependencies.multiversx-sc]
+version = "0.39.5"
 
 [dev-dependencies]
 hex = "0.4"

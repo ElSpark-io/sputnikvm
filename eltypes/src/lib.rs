@@ -2,10 +2,12 @@
 
 use core::cmp::Ordering;
 
-use mx_sc::api::{InvalidSliceError, VMApi};
+use multiversx_sc::api::{InvalidSliceError, VMApi};
+use primitive_types::H256;
+use multiversx_sc::types::heap::Vec;
 
-mx_sc::imports!();
-mx_sc::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(
 	ManagedVecItem, TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Default,

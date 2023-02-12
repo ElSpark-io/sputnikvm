@@ -26,8 +26,8 @@ use crate::utils::*;
 use alloc::rc::Rc;
 use core::ops::Range;
 use eltypes::ManagedBufferAccess;
-use mx_sc::api::VMApi;
-use mx_sc::{contract_base::ContractBase, types::ManagedBuffer};
+use multiversx_sc::api::VMApi;
+use multiversx_sc::{contract_base::ContractBase, types::ManagedBuffer};
 use primitive_types::U256;
 
 /// Core execution layer for EVM.

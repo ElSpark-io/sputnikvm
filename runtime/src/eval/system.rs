@@ -6,7 +6,7 @@ use crate::{
 
 use core::cmp::min;
 use eltypes::{ManagedBufferAccess, EH256};
-use mx_sc::{
+use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
 	contract_base::ContractBase,
 	types::{ManagedBuffer, ManagedType, ManagedVec},
