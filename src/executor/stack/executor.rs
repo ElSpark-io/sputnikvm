@@ -441,6 +441,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 
 	/// Execute the runtime until it returns.
 	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>) -> ExitReason {
+        // Error here - already fixed
 		let x = runtime.run(self);
 		match x {
 			Capture::Exit(s) => s,
@@ -592,14 +593,14 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			apparent_value: value,
 		};
 
+        // error here - already fixed
 		match self.call_inner(
 			address,
-			// Some(Transfer {
-			// 	source: caller,
-			// 	target: address,
-			// 	value,
-			// }),
-			None,
+			Some(Transfer {
+				source: caller,
+				target: address,
+				value,
+			}),
 			data,
 			Some(gas_limit),
 			false,
@@ -1016,8 +1017,11 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			};
 		}
 
+        let tmp = input.len();
+        
 		let mut runtime = Runtime::new(Rc::new(code), Rc::new(input), context, self.config);
 
+        // Error here - already fixed
 		let reason = self.execute(&mut runtime);
 		log::debug!(target: "evm", "Call execution using address {}: {:?}", code_address, reason);
 

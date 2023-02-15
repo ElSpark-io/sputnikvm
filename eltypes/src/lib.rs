@@ -145,6 +145,7 @@ impl<M: VMApi> ManagedBufferAccess<M> for ManagedBuffer<M> {
 	fn get(&self, index: usize) -> u8 {
 		match self.try_get(index) {
 			Some(result) => result,
+            // Error here
 			None => M::error_api_impl().signal_error(b"INDEX_OUT_OF_RANGE_MSG"),
 		}
 	}

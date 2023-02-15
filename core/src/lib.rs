@@ -101,8 +101,13 @@ impl<M: VMApi> Machine<M> {
 			Ok(position) => position,
 			Err(_) => return None,
 		};
-		let value = self.code.get(position);
-		Some((Opcode(value), &self.stack))
+        // Error here
+		let value = self.code.try_get(position);
+        match value {
+            Some(num) => return Some((Opcode(num), &self.stack)),
+            None => return None
+        }
+		//Some((Opcode(value), &self.stack))
 	}
 
 	/// Copy and get the return value of the machine, if any.
@@ -150,10 +155,11 @@ impl<M: VMApi> Machine<M> {
 			.as_ref()
 			.map_err(|reason| Capture::Exit(reason.clone()))?;
 
-		let v = self.code.get(position);
+        // Notice this, carefully
+		let v = self.code.try_get(position);
 
-		match Some(Opcode(v)) {
-			Some(opcode) => match eval(self, opcode, position) {
+		match v {
+			Some(opcode) => match eval(self, Opcode(opcode), position) {
 				Control::Continue(p) => {
 					self.position = Ok(position + p);
 					Ok(())

@@ -104,6 +104,8 @@ macro_rules! step {
 	});
 }
 
+
+
 /// EVM runtime.
 ///
 /// The runtime wraps an EVM `Machine` with support of return data and context.
@@ -156,6 +158,7 @@ impl<'config, M: VMApi> Runtime<'config, M> {
 		handler: &mut H,
 	) -> Capture<ExitReason, Resolve<'a, 'config, M, H>> {
 		loop {
+            // Error here - already fixed
 			step!(self, handler, return;)
 		}
 	}
