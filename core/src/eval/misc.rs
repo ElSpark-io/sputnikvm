@@ -1,7 +1,7 @@
 use super::Control;
 use crate::{ExitError, ExitFatal, ExitRevert, ExitSucceed, Machine};
 use core::cmp::min;
-use eltypes::{ManagedBufferAccess, ManagedVecforEH256, ToEH256};
+use evm_types::{ManagedBufferAccess, ManagedVecforEH256, ToEH256};
 use multiversx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,
@@ -180,7 +180,7 @@ pub fn push<M: VMApi>(state: &mut Machine<M>, n: usize, position: usize) -> Cont
 	for i in 0..slice_len {
 		val[offset + i] = slice.get(i);
 	}
-	push!(state, eltypes::EH256 { data: val });
+	push!(state, evm_types::EH256 { data: val });
 	Control::Continue(1 + n)
 }
 

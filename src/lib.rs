@@ -6,10 +6,10 @@
 
 extern crate alloc;
 
-pub use eltypes::*;
 pub use evm_core::*;
 pub use evm_gasometer as gasometer;
 pub use evm_runtime::*;
+pub use evm_types::*;
 
 #[cfg(feature = "tracing")]
 pub mod tracing;

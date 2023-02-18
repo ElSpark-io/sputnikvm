@@ -1,17 +1,17 @@
 [package]
-name = "eltypes"
-version = "0.1.0"
-edition = "2021"
+name = "evm-types"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 primitive-types = { version = "0.12.1", default-features = false, features = ["rlp"] }
 hex = { version = "=0.4.0", default-features = false }
+
 
 [dependencies.multiversx-sc]
 version = "0.39.5"
 
 [dev-dependencies]
-elrond-wasm-debug = "0.36.0"
-
+mx-sc-debug = { path= "../../elrond-wasm-rs/framework/debug", version = "0.38.0" }

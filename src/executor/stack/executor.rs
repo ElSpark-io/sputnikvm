@@ -10,8 +10,8 @@ use alloc::{
 	vec::Vec,
 };
 use core::{cmp::min, convert::Infallible};
-use eltypes::{ManagedBufferAccess, EH256};
 use evm_core::{ExitFatal, ExitRevert};
+use evm_types::{ManagedBufferAccess, EH256};
 use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
 	types::ManagedType,

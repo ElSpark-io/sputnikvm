@@ -6,6 +6,7 @@ mod memory;
 
 pub use self::memory::{MemoryAccount, MemoryBackend, MemoryVicinity};
 
+use evm_types::ETHAddress;
 use multiversx_sc::{api::VMApi, types::ManagedBuffer};
 use primitive_types::{H160, H256, U256};
 
@@ -26,12 +27,12 @@ pub struct Basic {
 pub use ethereum::Log;
 
 /// Apply state operation.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Apply<I, M: VMApi> {
 	/// Modify or create at address.
 	Modify {
 		/// Address.
-		address: H160,
+		address: ETHAddress,
 		/// Basic information of the address.
 		basic: Basic,
 		/// Code. `None` means leaving it unchanged.
@@ -45,7 +46,7 @@ pub enum Apply<I, M: VMApi> {
 	/// Delete address.
 	Delete {
 		/// Address.
-		address: H160,
+		address: ETHAddress,
 	},
 }
 

@@ -1,5 +1,5 @@
 use crate::Opcode;
-use eltypes::{ManagedBufferAccess, Resizable};
+use evm_types::{ManagedBufferAccess, Resizable};
 use multiversx_sc::{
 	api::VMApi,
 	contract_base::ContractBase,

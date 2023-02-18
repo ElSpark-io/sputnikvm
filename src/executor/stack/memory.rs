@@ -7,11 +7,9 @@ use alloc::{
 	vec::Vec,
 };
 use core::mem;
-use eltypes::EH256;
+use evm_types::EH256;
 use multiversx_sc::api::VMApi;
-use multiversx_sc::{
-	types::{ManagedBuffer, ManagedVec},
-};
+use multiversx_sc::types::{ManagedBuffer, ManagedVec};
 use primitive_types::{H160, H256, U256};
 
 #[derive(Clone, Debug)]

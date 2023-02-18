@@ -14,7 +14,7 @@ primitive-types = { version = "0.12", default-features = false }
 
 evm-core = { version = "0.37", path = "../core", default-features = false }
 evm-runtime = { version = "0.37", path = "../runtime", default-features = false }
-eltypes = { version = "0.1.0", path = "../eltypes", default-features = false }
+evm-types = { path = "../evm-types", default-features = false }
 
 
 [dependencies.multiversx-sc]

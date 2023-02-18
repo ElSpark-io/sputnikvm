@@ -6,7 +6,7 @@ mod misc;
 
 use crate::{ExitError, ExitReason, ExitSucceed, Machine, Opcode};
 use core::ops::{BitAnd, BitOr, BitXor};
-use eltypes::ToEH256;
+use evm_types::ToEH256;
 use multiversx_sc::api::VMApi;
 use primitive_types::{H256, U256};
 

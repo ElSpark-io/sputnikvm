@@ -1,7 +1,7 @@
 use super::{Apply, ApplyBackend, Backend, Basic, Log};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use eltypes::EH256;
+use evm_types::EH256;
 use multiversx_sc::{
 	api::VMApi,
 	types::{ManagedBuffer, ManagedVec},
