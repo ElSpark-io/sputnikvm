@@ -22,12 +22,10 @@ pub use crate::stack::Stack;
 pub use crate::valids::Valids;
 
 use crate::eval::{eval, Control};
-use crate::utils::*;
 use alloc::rc::Rc;
 use core::ops::Range;
-use evm_types::ManagedBufferAccess;
 use multiversx_sc::api::VMApi;
-use multiversx_sc::{contract_base::ContractBase, types::ManagedBuffer};
+use multiversx_sc::types::ManagedBuffer;
 use primitive_types::U256;
 
 /// Core execution layer for EVM.

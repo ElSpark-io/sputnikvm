@@ -68,17 +68,28 @@ pub mod error {
 	}
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Default)]
-pub struct ElsparkH256(pub [u8; 32]);
-
-impl ElsparkH256 {
-	pub fn from(h256: H256) -> Self {
-		Self(h256.0)
+#[derive(
+	TypeAbi, ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Debug, Clone,
+)]
+pub struct EH256<M: ManagedTypeApi> {
+	pub data: ManagedByteArray<M, 32>,
+}
+impl<M: ManagedTypeApi> EH256<M> {
+	pub fn new(bytes: ManagedByteArray<M, 32>) -> Self {
+		Self { data: bytes }
 	}
-
-	pub fn as_bytes(&self) -> &[u8] {
-		&self.0
+	pub fn from_bytes(bytes: [u8; 32]) -> Self {
+		Self {
+			data: ManagedByteArray::from(&bytes),
+		}
 	}
+	// pub fn from(h256: H256) -> Self {
+	// 	Self(h256.0)
+	// }
+
+	// pub fn as_bytes(&self) -> &[u8] {
+	// 	&self.0
+	// }
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Default)]

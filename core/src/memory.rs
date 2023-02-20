@@ -1,7 +1,6 @@
 use crate::{ExitError, ExitFatal};
 use core::cmp::min;
 use core::ops::{BitAnd, Not};
-use evm_types::ManagedBufferAccess;
 use multiversx_sc::api::VMApi;
 use multiversx_sc::types::ManagedBuffer;
 use multiversx_sc::{contract_base::ContractBase, types::ManagedVec};

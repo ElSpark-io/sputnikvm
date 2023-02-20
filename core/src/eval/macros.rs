@@ -22,7 +22,7 @@ macro_rules! pop_u256 {
 	( $machine:expr, $( $x:ident ),* ) => (
 		$(
 			let $x = match $machine.stack.pop() {
-				Ok(value) => U256::from_big_endian(&value.as_bytes()),
+				Ok(value) => U256::from(&value.data.to_byte_array()),
 				Err(e) => return Control::Exit(e.into()),
 			};
 		)*
@@ -45,7 +45,8 @@ macro_rules! push_u256 {
 		$(
 			let mut value = H256::default();
 			$x.to_big_endian(&mut value[..]);
-			match $machine.stack.push(value.to_eh256()) {
+			let h256 = evm_types::EH256::from_bytes(value.0);
+			match $machine.stack.push(h256) {
 				Ok(()) => (),
 				Err(e) => return Control::Exit(e.into()),
 			}
