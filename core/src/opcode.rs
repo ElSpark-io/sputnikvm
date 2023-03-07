@@ -1,10 +1,14 @@
 /// Opcode enum. One-to-one corresponding to an `u8` value.
+multiversx_sc::derive_imports!();
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Default)]
+
 pub struct Opcode(pub u8);
 
 // Core opcodes.

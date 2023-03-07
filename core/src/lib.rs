@@ -27,7 +27,7 @@ use alloc::rc::Rc;
 use core::ops::Range;
 use eltypes::ManagedBufferAccess;
 use multiversx_sc::api::VMApi;
-use multiversx_sc::{contract_base::ContractBase, types::ManagedBuffer};
+use multiversx_sc::types::ManagedBuffer;
 use primitive_types::U256;
 
 /// Core execution layer for EVM.
@@ -133,9 +133,9 @@ impl<M: VMApi> Machine<M> {
 	}
 
 	/// Loop stepping the machine, until it stops.
-	pub fn run(&mut self) -> Capture<ExitReason, Trap> {
+	pub fn run(&mut self, f: impl Fn(Opcode, usize) -> ()) -> Capture<ExitReason, Trap> {
 		loop {
-			match self.step() {
+			match self.step(&f) {
 				Ok(()) => (),
 				Err(res) => return res,
 			}
@@ -144,7 +144,11 @@ impl<M: VMApi> Machine<M> {
 
 	#[inline]
 	/// Step the machine, executing one opcode. It then returns.
-	pub fn step(&mut self) -> Result<(), Capture<ExitReason, Trap>> {
+	pub fn step(
+		&mut self,
+		f: impl Fn(Opcode, usize) -> (),
+	) -> Result<(), Capture<ExitReason, Trap>> {
+		// event!("abcd");
 		let position = *self
 			.position
 			.as_ref()
@@ -155,10 +159,12 @@ impl<M: VMApi> Machine<M> {
 		match Some(Opcode(v)) {
 			Some(opcode) => match eval(self, opcode, position) {
 				Control::Continue(p) => {
+					f(opcode, position);
 					self.position = Ok(position + p);
 					Ok(())
 				}
 				Control::Exit(e) => {
+					f(opcode, position);
 					self.position = Err(e.clone());
 					Err(Capture::Exit(e))
 				}
@@ -167,6 +173,7 @@ impl<M: VMApi> Machine<M> {
 					Ok(())
 				}
 				Control::Trap(opcode) => {
+					f(opcode, position);
 					self.position = Ok(position + 1);
 					Err(Capture::Trap(opcode))
 				}

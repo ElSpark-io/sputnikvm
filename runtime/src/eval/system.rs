@@ -6,6 +6,7 @@ use crate::{
 
 use core::cmp::min;
 use eltypes::{ManagedBufferAccess, EH256};
+use evm_core::Opcode;
 use multiversx_sc::{
 	api::{CryptoApiImpl, VMApi},
 	contract_base::ContractBase,
@@ -28,7 +29,10 @@ pub fn sha3<H: Handler<M>, M: VMApi>(runtime: &mut Runtime<M>) -> Control<M, H> 
 
 	let ret: ManagedBuffer<M> = ManagedBuffer::new();
 	M::crypto_api_impl().keccak256_managed(ret.get_handle(), data.get_handle());
-	push!(runtime, EH256::from(H256::from_slice(&ret.to_boxed_bytes().as_slice())));
+	push!(
+		runtime,
+		EH256::from(H256::from_slice(&ret.to_boxed_bytes().as_slice()))
+	);
 
 	Control::Continue
 }
@@ -350,6 +354,7 @@ pub fn create<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	is_create2: bool,
 	handler: &mut H,
+	f: impl Fn(Opcode, usize) -> (),
 ) -> Control<M, H> {
 	runtime.return_data_buffer = ManagedBuffer::new();
 
@@ -382,7 +387,7 @@ pub fn create<'config, H: Handler<M>, M: VMApi>(
 		}
 	};
 
-	match handler.create(runtime.context.address, scheme, value, code, None) {
+	match handler.create(runtime.context.address, scheme, value, code, None, f) {
 		Capture::Exit((reason, address, return_data)) => {
 			runtime.return_data_buffer = return_data;
 			let create_address: H256 = address.map(|a| a.into()).unwrap_or_default();
@@ -417,6 +422,7 @@ pub fn call<'config, H: Handler<M>, M: VMApi>(
 	runtime: &mut Runtime<'config, M>,
 	scheme: CallScheme,
 	handler: &mut H,
+	f: impl Fn(Opcode, usize) -> (),
 ) -> Control<M, H> {
 	runtime.return_data_buffer = ManagedBuffer::new();
 
@@ -497,6 +503,7 @@ pub fn call<'config, H: Handler<M>, M: VMApi>(
 		gas,
 		scheme == CallScheme::StaticCall,
 		context,
+		f,
 	) {
 		Capture::Exit((reason, return_data)) => {
 			runtime.return_data_buffer = return_data;

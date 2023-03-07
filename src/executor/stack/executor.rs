@@ -10,6 +10,7 @@ use alloc::{
 	vec::Vec,
 };
 use core::{cmp::min, convert::Infallible};
+// use elsparkevm::EVM;
 use eltypes::{ManagedBufferAccess, EH256};
 use evm_core::{ExitFatal, ExitRevert};
 use multiversx_sc::{
@@ -276,6 +277,7 @@ pub trait PrecompileHandle<M: VMApi> {
 		gas_limit: Option<u64>,
 		is_static: bool,
 		context: &Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> (ExitReason, ManagedBuffer<M>);
 
 	/// Record cost to the Runtime gasometer.
@@ -384,6 +386,7 @@ pub struct StackExecutor<'config, 'precompiles, M: VMApi, S, P> {
 	precompile_set: &'precompiles P,
 	//TODO: remove vec_test
 	vec_test: ManagedBuffer<M>,
+	// io: &'a C,
 }
 
 impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: VMApi>
@@ -440,8 +443,12 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 	}
 
 	/// Execute the runtime until it returns.
-	pub fn execute(&mut self, runtime: &mut Runtime<'config, M>) -> ExitReason {
-		let x = runtime.run(self);
+	pub fn execute(
+		&mut self,
+		runtime: &mut Runtime<'config, M>,
+		f: impl Fn(Opcode, usize) -> (),
+	) -> ExitReason {
+		let x = runtime.run(self, f);
 		match x {
 			Capture::Exit(s) => s,
 			Capture::Trap(_) => unreachable!("Trap is Infallible"),
@@ -471,6 +478,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		init_code: ManagedBuffer<M>,
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
+		f: impl Fn(Opcode, usize) -> (),
 	) -> (ExitReason, ManagedBuffer<M>) {
 		// event!(TransactCreate {
 		// 	caller,
@@ -492,6 +500,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			&init_code,
 			Some(gas_limit),
 			false,
+			f,
 		) {
 			Capture::Exit((s, _, v)) => emit_exit!(s, v),
 			Capture::Trap(_) => unreachable!(),
@@ -507,6 +516,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		salt: H256,
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
+		f: impl Fn(Opcode, usize) -> (),
 	) -> (ExitReason, ManagedBuffer<M>) {
 		let ret: ManagedBuffer<M> = ManagedBuffer::new();
 		M::crypto_api_impl().keccak256_managed(ret.get_handle(), init_code.get_handle());
@@ -540,6 +550,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			init_code.into(),
 			Some(gas_limit),
 			false,
+			f,
 		) {
 			Capture::Exit((s, _, v)) => emit_exit!(s, v),
 			Capture::Trap(_) => unreachable!(),
@@ -560,6 +571,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		data: ManagedBuffer<M>,
 		gas_limit: u64,
 		access_list: &[(H160, Vec<H256>)],
+		f: impl Fn(Opcode, usize) -> (),
 	) -> (ExitReason, ManagedBuffer<M>) {
 		// event!(TransactCall {
 		// 	caller,
@@ -606,6 +618,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			false,
 			false,
 			context,
+			f,
 		) {
 			Capture::Exit((s, v)) => emit_exit!(s, v),
 			Capture::Trap(_) => unreachable!(),
@@ -703,6 +716,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		init_code: &ManagedBuffer<M>,
 		target_gas: Option<u64>,
 		take_l64: bool,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, Option<H160>, ManagedBuffer<M>), Infallible> {
 		macro_rules! try_or_fail {
 			( $e:expr ) => {
@@ -826,7 +840,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			self.config,
 		);
 
-		let reason = self.execute(&mut runtime);
+		let reason = self.execute(&mut runtime, f);
 		log::debug!(target: "evm", "Create execution using address {}: {:?}", address, reason);
 
 		match reason {
@@ -902,6 +916,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		take_l64: bool,
 		take_stipend: bool,
 		context: Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, ManagedBuffer<M>), Infallible> {
 		macro_rules! try_or_fail {
 			( $e:expr ) => {
@@ -1011,7 +1026,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		// }
 
 		let mut runtime = Runtime::new(Rc::new(code), Rc::new(input), context, self.config);
-		let reason = self.execute(&mut runtime);
+		let reason = self.execute(&mut runtime, f);
 		// log::debug!(target: "evm", "Call execution using address {}: {:?}", code_address, reason);
 
 		// Capture::Exit((
@@ -1177,8 +1192,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		value: U256,
 		init_code: ManagedBuffer<M>,
 		target_gas: Option<u64>,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, Option<H160>, ManagedBuffer<M>), Self::CreateInterrupt> {
-		self.create_inner(caller, scheme, value, &init_code, target_gas, true)
+		self.create_inner(caller, scheme, value, &init_code, target_gas, true, f)
 	}
 
 	#[cfg(feature = "tracing")]
@@ -1189,8 +1205,9 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		value: U256,
 		init_code: ManagedBuffer<M>,
 		target_gas: Option<u64>,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, Option<H160>, ManagedBuffer<M>), Self::CreateInterrupt> {
-		let capture = self.create_inner(caller, scheme, value, init_code, target_gas, true);
+		let capture = self.create_inner(caller, scheme, value, init_code, target_gas, true, f);
 
 		if let Capture::Exit((ref reason, _, ref return_value)) = capture {
 			emit_exit!(reason, return_value);
@@ -1208,6 +1225,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		target_gas: Option<u64>,
 		is_static: bool,
 		context: Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, ManagedBuffer<M>), Self::CallInterrupt> {
 		self.call_inner(
 			code_address,
@@ -1218,6 +1236,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			true,
 			true,
 			context,
+			f,
 		)
 	}
 
@@ -1230,6 +1249,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 		target_gas: Option<u64>,
 		is_static: bool,
 		context: Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, ManagedBuffer<M>), Self::CallInterrupt> {
 		let capture = self.call_inner(
 			code_address,
@@ -1240,6 +1260,7 @@ impl<'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<M>, M: V
 			true,
 			true,
 			context,
+			f,
 		);
 
 		if let Capture::Exit((ref reason, ref return_value)) = capture {
@@ -1311,6 +1332,7 @@ impl<'inner, 'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<
 		gas_limit: Option<u64>,
 		is_static: bool,
 		context: &Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> (ExitReason, ManagedBuffer<M>) {
 		// For normal calls the cost is recorded at opcode level.
 		// Since we don't go through opcodes we need manually record the call
@@ -1357,6 +1379,7 @@ impl<'inner, 'config, 'precompiles, S: StackState<'config, M>, P: PrecompileSet<
 			gas_limit,
 			is_static,
 			context.clone(),
+			f,
 		) {
 			Capture::Exit((s, v)) => (s, v),
 			Capture::Trap(_) => unreachable!("Trap is infaillible since StackExecutor is sync"),

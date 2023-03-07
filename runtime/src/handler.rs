@@ -98,6 +98,7 @@ pub trait Handler<M: VMApi> {
 		value: U256,
 		init_code: ManagedBuffer<M>,
 		target_gas: Option<u64>,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, Option<H160>, ManagedBuffer<M>), Self::CreateInterrupt>;
 	/// Feed in create feedback.
 	fn create_feedback(&mut self, _feedback: Self::CreateFeedback) -> Result<(), ExitError> {
@@ -112,6 +113,7 @@ pub trait Handler<M: VMApi> {
 		target_gas: Option<u64>,
 		is_static: bool,
 		context: Context,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<(ExitReason, ManagedBuffer<M>), Self::CallInterrupt>;
 	/// Feed in call feedback.
 	fn call_feedback(&mut self, _feedback: Self::CallFeedback) -> Result<(), ExitError> {

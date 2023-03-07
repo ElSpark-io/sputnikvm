@@ -37,7 +37,7 @@ pub use crate::interrupt::{Resolve, ResolveCall, ResolveCreate};
 use alloc::rc::Rc;
 
 macro_rules! step {
-	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)? ) => ({
+	( $self:expr, $handler:expr, $return:tt $($err:path)?; $($ok:path)?, $f: expr ) => ({
 		if let Some((opcode, stack)) = $self.machine.inspect() {
 			// event!(Step {
 			// 	context: &$self.context,
@@ -64,7 +64,7 @@ macro_rules! step {
 			},
 		}
 
-		let result = $self.machine.step();
+		let result = $self.machine.step($f);
 
 		// event!(StepResult {
 		// 	result: &result,
@@ -79,7 +79,7 @@ macro_rules! step {
 				$return $($err)*(Capture::Exit(e))
 			},
 			Err(Capture::Trap(opcode)) => {
-				match eval::eval($self, opcode, $handler) {
+				match eval::eval($self, opcode, $handler, $f) {
 					eval::Control::Continue => $($ok)?(()),
 					eval::Control::CallInterrupt(interrupt) => {
 						let resolve = ResolveCall::new($self);
@@ -145,17 +145,19 @@ impl<'config, M: VMApi> Runtime<'config, M> {
 	pub fn step<'a, H: Handler<M>>(
 		&'a mut self,
 		handler: &mut H,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Result<(), Capture<ExitReason, Resolve<'a, 'config, M, H>>> {
-		step!(self, handler, return Err; Ok)
+		step!(self, handler, return Err; Ok, &f)
 	}
 
 	/// Loop stepping the runtime until it stops.
 	pub fn run<'a, H: Handler<M>>(
 		&'a mut self,
 		handler: &mut H,
+		f: impl Fn(Opcode, usize) -> (),
 	) -> Capture<ExitReason, Resolve<'a, 'config, M, H>> {
 		loop {
-			step!(self, handler, return;)
+			step!(self, handler, return;, &f)
 		}
 	}
 }
