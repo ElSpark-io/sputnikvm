@@ -16,12 +16,12 @@ mod utils;
 mod valids;
 
 pub use crate::error::{Capture, ExitError, ExitFatal, ExitReason, ExitRevert, ExitSucceed, Trap};
+pub use crate::eval::{eval, Control};
 pub use crate::memory::Memory;
 pub use crate::opcode::Opcode;
 pub use crate::stack::Stack;
 pub use crate::valids::Valids;
 
-use crate::eval::{eval, Control};
 use crate::utils::*;
 use alloc::rc::Rc;
 use core::ops::Range;
@@ -37,7 +37,7 @@ pub struct Machine<M: VMApi> {
 	/// Program code.
 	pub code: Rc<ManagedBuffer<M>>,
 	/// Program counter.
-	position: Result<usize, ExitReason>,
+	pub position: Result<usize, ExitReason>,
 	/// Return value.
 	return_range: Range<U256>,
 	/// Code validity maps.

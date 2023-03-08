@@ -462,7 +462,7 @@ fn eval_external<M: VMApi>(_state: &mut Machine<M>, opcode: Opcode, _position: u
 	Control::Trap(opcode)
 }
 
-#[inline]
+// #[inline]
 pub fn eval<M: VMApi>(state: &mut Machine<M>, opcode: Opcode, position: usize) -> Control {
 	match opcode {
 		Opcode::STOP => eval_stop(state, opcode, position),
